@@ -1,0 +1,97 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  background-color: #FFFFFF;
+  color: #0D1117;
+}
+
+* {
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid #0B5FFF;
+  outline-offset: 2px;
+}
+
+.font-mono-num {
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-feature-settings: "tnum";
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ===== Cadastro: troca animada entre o portal do estudante e o do mentor =====
+   Em telas grandes os dois painéis trocam de lugar (o branco desliza para a esquerda, o colorido
+   para a direita). Os conteúdos ficam sempre montados (os dados digitados são preservados) e
+   alternam por fade + deslocamento. Em telas pequenas só os formulários se alternam. */
+.reg-stage {
+  --reg-dur: 700ms;
+  --reg-ease: cubic-bezier(0.65, 0, 0.35, 1);
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+.reg-aside { display: none; position: relative; overflow: hidden; z-index: 2; }
+.reg-main { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; }
+@media (min-width: 1024px) {
+  .reg-stage { grid-template-columns: 1fr 1.1fr; }
+  .reg-aside { display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 0 40px rgba(13, 17, 23, 0.18); }
+  .reg-aside, .reg-main { transition: transform var(--reg-dur) var(--reg-ease); will-change: transform; }
+  /* larguras 1fr : 1.1fr => deslocamento de um painel = largura do outro */
+  .reg-stage[data-portal="mentor"] .reg-aside { transform: translateX(110%); }
+  .reg-stage[data-portal="mentor"] .reg-main { transform: translateX(-90.909%); }
+}
+
+.reg-bg { position: absolute; inset: 0; pointer-events: none; transition: opacity var(--reg-dur) ease-in-out; }
+.reg-bg-student { background: linear-gradient(115deg, #0B7CFF 0%, #4A3DF2 55%, #6425F0 100%); }
+.reg-bg-mentor { background: linear-gradient(115deg, #0A4FD1 0%, #2B2FA8 50%, #161B22 100%); opacity: 0; }
+.reg-stage[data-portal="mentor"] .reg-bg-student { opacity: 0; }
+.reg-stage[data-portal="mentor"] .reg-bg-mentor { opacity: 1; }
+.reg-bg-light-student { background: radial-gradient(ellipse 120% 100% at 50% -20%, #EDF3FF 0%, #FFFFFF 60%); }
+.reg-bg-light-mentor { background: radial-gradient(ellipse 120% 100% at 50% -20%, #F2EBFF 0%, #FFFFFF 60%); opacity: 0; }
+.reg-stage[data-portal="mentor"] .reg-bg-light-student { opacity: 0; }
+.reg-stage[data-portal="mentor"] .reg-bg-light-mentor { opacity: 1; }
+
+.reg-stack { position: relative; display: grid; }
+.reg-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-32px);
+  transition: opacity calc(var(--reg-dur) * 0.4) ease-in-out, transform var(--reg-dur) var(--reg-ease), visibility 0s linear var(--reg-dur);
+}
+.reg-layer[data-side="b"] { transform: translateX(32px); }
+.reg-layer[data-active="true"] {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+  transition: opacity calc(var(--reg-dur) * 0.55) ease-in-out calc(var(--reg-dur) * 0.3), transform var(--reg-dur) var(--reg-ease), visibility 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reg-aside, .reg-main { transition: none; will-change: auto; }
+  .reg-bg { transition-duration: 200ms; }
+  .reg-layer, .reg-layer[data-side="b"] { transform: none; transition: opacity 200ms linear, visibility 0s linear 200ms; }
+  .reg-layer[data-active="true"] { transition: opacity 200ms linear, visibility 0s; }
+}
