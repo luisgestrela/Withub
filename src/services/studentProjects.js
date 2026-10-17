@@ -1,14 +1,13 @@
 import { studentProjects } from "../data/projects.js";
-import { listMyProjects, me } from "./api.js";
+import { listMyProjects, me, STAGE_LABEL } from "./api.js";
 
-// Linhas de "Meus Projetos": os criados pelo próprio estudante (+ exemplos apenas na conta demo).
 export function projectRows() {
   const demo = me().id === "u-eduardo";
   const known = new Set(studentProjects.map((p) => p.id));
   const mine = listMyProjects().filter((p) => !demo || !known.has(p.id)).map((p) => ({
     id: p.id, title: p.title, category: p.category, to: `/publicacao/${p.id}`,
-    status: p.visibility === "private" ? "draft" : "approved",
-    label: { public: "Publicado no feed", internal: "Visível à instituição", private: "Rascunho privado" }[p.visibility],
+    status: p.stage ? (["awaiting", "mentoring", "adjustments"].includes(p.stage) ? "review" : "approved") : p.visibility === "private" ? "draft" : "approved",
+    label: p.stage ? `${STAGE_LABEL[p.stage === "approved" && p.visibility === "public" ? "published" : p.stage]}` : { public: "Publicado no feed", internal: "Visível à instituição", private: "Rascunho privado" }[p.visibility],
     updated: new Date(p.createdAt).toLocaleDateString("pt-BR"),
   }));
   const seeds = demo ? studentProjects.map((p) => ({
@@ -17,3 +16,4 @@ export function projectRows() {
   })) : [];
   return [...mine, ...seeds];
 }
+

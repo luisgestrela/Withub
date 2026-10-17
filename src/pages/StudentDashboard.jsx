@@ -69,7 +69,7 @@ export default function StudentDashboard() {
         ) : (
           <ul className="mt-3 divide-y divide-line-soft">
             {recent.map((n) => (
-              <li key={n.id}><Link to={`/publicacao/${n.projectId}`} className="block py-2.5 text-sm text-ink hover:text-blue">{n.text}<span className="mt-0.5 block text-xs text-muted">{new Date(n.at).toLocaleString("pt-BR")}</span></Link></li>
+              <li key={n.id}><Link to={n.to} className="block py-2.5 text-sm text-ink hover:text-blue">{n.text}<span className="mt-0.5 block text-xs text-muted">{new Date(n.at).toLocaleString("pt-BR")}</span></Link></li>
             ))}
           </ul>
         )}

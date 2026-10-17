@@ -7,6 +7,8 @@ import PostActions from "../components/PostActions";
 import Notice from "../components/Notice";
 import RecommendedNotice from "../components/RecommendedNotice";
 import { Chips } from "../components/FeedList";
+import StageBadge from "../components/StageBadge";
+import MentoringSection from "../components/mentoring/MentoringSection";
 import { useApi } from "../services/useApi";
 import * as api from "../services/api";
 
@@ -16,7 +18,7 @@ export default function PostDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  useApi();
+  const { user } = useApi();
   const [notice, setNotice] = useState(() => (location.state?.created ? { type: "ok", text: "Projeto salvo com sucesso." } : null));
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({});
@@ -32,7 +34,7 @@ export default function PostDetail() {
     return (
       <SocialShell>
         <p className="rounded-xl border border-line-soft bg-white p-8 text-center text-sm text-muted">Projeto não encontrado.</p>
-        <Link to="/feed" className="mt-4 inline-block text-sm text-blue">Voltar ao feed</Link>
+        <Link to={location.pathname.startsWith("/mentor/") ? "/mentor/projetos" : "/feed"} className="mt-4 inline-block text-sm text-blue">Voltar</Link>
       </SocialShell>
     );
   }
@@ -40,7 +42,9 @@ export default function PostDetail() {
   let files = [];
   if (perms.restricted) { try { files = api.getRestrictedFiles(id); } catch { /* sem acesso */ } }
   const comments = api.listComments(id);
-  const mentors = api.USERS.filter((u) => u.role === "mentor");
+  const mentors = api.listMentors();
+  const mentoring = api.getMentoringState(id);
+  const fromMentor = location.pathname.startsWith("/mentor/");
 
   const startEdit = () => {
     setDraft({ title: post.title, description: post.description, skills: post.skills.join(", "), knowledge: post.knowledge.join(", "), tech: post.tech.join(", ") });
@@ -59,7 +63,7 @@ export default function PostDetail() {
 
   return (
     <SocialShell>
-      <Link to="/feed" className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-blue"><ArrowLeft className="h-4 w-4" /> Voltar ao feed</Link>
+      <Link to={fromMentor ? "/mentor/projetos" : "/feed"} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-blue"><ArrowLeft className="h-4 w-4" /> {fromMentor ? "Voltar aos meus projetos" : "Voltar ao feed"}</Link>
       <Notice notice={notice} />
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-6">
@@ -68,6 +72,8 @@ export default function PostDetail() {
             <div className="space-y-4 p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <CategoryChip id={post.category} size="md" />
+                {mentoring.canHistory && <StageBadge stage={mentoring.stage} visibility={post.visibility} />}
+                {post.seekingMentor && <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet">Procura mentoria</span>}
                 {post.visibility === "private" && <span className="rounded-full bg-draft-bg px-2.5 py-1 text-xs font-medium text-draft">Rascunho privado</span>}
                 {post.visibility === "internal" && <span className="rounded-full bg-draft-bg px-2.5 py-1 text-xs font-medium text-draft">Visível só à sua instituição</span>}
               </div>
@@ -109,6 +115,8 @@ export default function PostDetail() {
               </div>
             </section>
           )}
+
+          <MentoringSection post={post} act={act} />
 
           {perms.restricted && (
             <section className="rounded-xl border border-violet/30 bg-white p-5 shadow-card">
@@ -172,6 +180,11 @@ export default function PostDetail() {
                 <option value="internal">Interno (sua instituição)</option>
                 <option value="public">Público (feed)</option>
               </select>
+              {user.role === "student" && (
+                <label className="flex items-center gap-2 text-xs font-medium text-ink">
+                  <input type="checkbox" checked={post.seekingMentor} onChange={(e) => act(() => api.updateProject(id, { seekingMentor: e.target.checked }), e.target.checked ? "Projeto sinalizado como procurando mentoria." : "Sinalização de mentoria removida.")} /> Estou procurando mentoria
+                </label>
+              )}
               <div>
                 <p className="mb-1.5 text-xs font-medium text-muted">Permitir que mentores editem:</p>
                 {mentors.map((m) => {

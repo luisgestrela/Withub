@@ -36,10 +36,6 @@ body {
   animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-/* ===== Cadastro: troca animada entre o portal do estudante e o do mentor =====
-   Em telas grandes os dois painéis trocam de lugar (o branco desliza para a esquerda, o colorido
-   para a direita). Os conteúdos ficam sempre montados (os dados digitados são preservados) e
-   alternam por fade + deslocamento. Em telas pequenas só os formulários se alternam. */
 .reg-stage {
   --reg-dur: 700ms;
   --reg-ease: cubic-bezier(0.65, 0, 0.35, 1);
@@ -48,14 +44,18 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   overflow-x: hidden;
+  overflow-x: clip;
 }
 .reg-aside { display: none; position: relative; overflow: hidden; z-index: 2; }
 .reg-main { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; }
 @media (min-width: 1024px) {
   .reg-stage { grid-template-columns: 1fr 1.1fr; }
-  .reg-aside { display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 0 40px rgba(13, 17, 23, 0.18); }
+  .reg-aside { display: block; overflow: clip; box-shadow: 0 0 40px rgba(13, 17, 23, 0.18); }
+  .reg-aside-inner { position: sticky; top: 3rem; display: flex; flex-direction: column; min-height: calc(100vh - 6rem); min-height: calc(100dvh - 6rem); }
+  .reg-aside-inner > .reg-stack { margin-top: 2.5rem; }
+  .reg-aside-inner > p:last-child { margin-top: auto; padding-top: 2rem; }
   .reg-aside, .reg-main { transition: transform var(--reg-dur) var(--reg-ease); will-change: transform; }
-  /* larguras 1fr : 1.1fr => deslocamento de um painel = largura do outro */
+  
   .reg-stage[data-portal="mentor"] .reg-aside { transform: translateX(110%); }
   .reg-stage[data-portal="mentor"] .reg-main { transform: translateX(-90.909%); }
 }
@@ -95,3 +95,5 @@ body {
   .reg-layer, .reg-layer[data-side="b"] { transform: none; transition: opacity 200ms linear, visibility 0s linear 200ms; }
   .reg-layer[data-active="true"] { transition: opacity 200ms linear, visibility 0s; }
 }
+
+

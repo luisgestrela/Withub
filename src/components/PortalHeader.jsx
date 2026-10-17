@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Bell, ChevronDown, FolderGit2, GraduationCap, LogOut, Search } from "lucide-react";
+import { Bell, Briefcase, ChevronDown, FolderGit2, GraduationCap, LogOut, Search, User } from "lucide-react";
 import Logo from "./Logo";
-import { logout, unreadNotificationCount } from "../services/api";
+import Avatar from "./Avatar";
+import { homeFor, logout, unreadNotificationCount } from "../services/api";
 
 export default function PortalHeader({ user }) {
   const navigate = useNavigate();
@@ -11,10 +12,12 @@ export default function PortalHeader({ user }) {
   const [params] = useSearchParams();
   const [q, setQ] = useState(params.get("q") || "");
   const unread = unreadNotificationCount();
-  // A busca filtra o feed da comunidade (título, descrição, autor, skills e tecnologias).
+  const mentor = user.role === "mentor";
+  const BadgeIcon = mentor ? Briefcase : GraduationCap;
+  
   const search = (e) => { e.preventDefault(); navigate(q.trim() ? `/feed?q=${encodeURIComponent(q.trim())}` : "/feed"); };
 
-  // Fecha o menu ao clicar fora ou apertar Esc
+ 
   useEffect(() => {
     if (!open) return undefined;
     const onClick = (e) => { if (!box.current?.contains(e.target)) setOpen(false); };
@@ -34,10 +37,10 @@ export default function PortalHeader({ user }) {
     <header className="sticky top-0 z-40 bg-white shadow-card">
       <div className="h-1 bg-brand-gradient" />
       <div className="mx-auto flex h-16 max-w-content items-center gap-3 px-5 sm:gap-5">
-        <Link to="/feed" className="flex items-center gap-3">
+        <Link to={homeFor(user.role)} className="flex items-center gap-3">
           <Logo />
           <span className="hidden items-center gap-1.5 rounded-full bg-brand-gradient px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white sm:inline-flex">
-            <GraduationCap className="h-3.5 w-3.5" /> Portal do Estudante
+            <BadgeIcon className="h-3.5 w-3.5" /> {mentor ? "Portal do Mentor" : "Portal do Estudante"}
           </span>
         </Link>
         <form onSubmit={search} role="search" className="relative hidden max-w-sm flex-1 lg:block">
@@ -46,7 +49,7 @@ export default function PortalHeader({ user }) {
         </form>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <Link to="/aluno/notificacoes" aria-label={unread ? `Notificações (${unread} não lidas)` : "Notificações"} className="relative rounded-md p-2 text-muted hover:bg-cloud hover:text-ink">
+          <Link to={mentor ? "/mentor/notificacoes" : "/aluno/notificacoes"} aria-label={unread ? `Notificações (${unread} não lidas)` : "Notificações"} className="relative rounded-md p-2 text-muted hover:bg-cloud hover:text-ink">
             <Bell className="h-5 w-5" />
             {unread > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet px-1 text-[10px] font-bold text-white">{unread}</span>}
           </Link>
@@ -58,10 +61,10 @@ export default function PortalHeader({ user }) {
               aria-expanded={open}
               className="flex items-center gap-2.5 rounded-lg p-1 pr-2 transition hover:bg-cloud"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-xs font-bold text-white">{user.initials}</span>
+              <Avatar person={user} size="md" />
               <span className="hidden text-left sm:block">
                 <span className="block text-sm font-semibold leading-tight text-ink">{user.name}</span>
-                <span className="block text-xs leading-tight text-muted">Estudante</span>
+                <span className="block text-xs leading-tight text-muted">{mentor ? "Mentor" : "Estudante"}</span>
               </span>
               <ChevronDown className={`h-4 w-4 text-muted transition ${open ? "rotate-180" : ""}`} />
             </button>
@@ -73,7 +76,12 @@ export default function PortalHeader({ user }) {
                   {user.email && <p className="truncate text-xs text-muted">{user.email}</p>}
                   {user.institution && <p className="mt-0.5 truncate text-xs text-muted">{user.institution}</p>}
                 </div>
-                <Link to="/aluno/projetos" role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-cloud">
+                {mentor && (
+                  <Link to={`/mentores/${user.id}`} role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-cloud">
+                    <User className="h-4 w-4 text-muted" /> Meu perfil
+                  </Link>
+                )}
+                <Link to={mentor ? "/mentor/projetos" : "/aluno/projetos"} role="menuitem" onClick={() => setOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-ink hover:bg-cloud">
                   <FolderGit2 className="h-4 w-4 text-muted" /> Meus projetos
                 </Link>
                 <button role="menuitem" onClick={exit} className="flex w-full items-center gap-2.5 border-t border-line-soft px-4 py-2.5 text-left text-sm font-semibold text-red-600 hover:bg-red-50">

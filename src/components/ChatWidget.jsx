@@ -1,14 +1,15 @@
 import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { MessageSquare, X } from "lucide-react";
 import ChatPanel from "./ChatPanel";
 import { useApi } from "../services/useApi";
 import { unreadTotal } from "../services/api";
 
-// Botão de chat no canto da página: um clique abre o chat. Visível só para mentores.
 export default function ChatWidget() {
   const { user } = useApi();
   const [open, setOpen] = useState(false);
-  if (user.role !== "mentor") return null;
+  const { pathname } = useLocation();
+  if (user.role !== "mentor" || pathname.startsWith("/mentor/chat")) return null;
   const unread = unreadTotal();
   return (
     <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
@@ -29,3 +30,4 @@ export default function ChatWidget() {
     </div>
   );
 }
+

@@ -2,14 +2,19 @@ import { Link, useLocation } from "react-router-dom";
 import { Bell, Search } from "lucide-react";
 import Logo from "./Logo";
 import PortalHeader from "./PortalHeader";
+import Avatar from "./Avatar";
+import { unreadNotificationCount, unreadTotal } from "../services/api";
 
 export function AppShell({ nav, user, subtitle, children }) {
   const location = useLocation();
   const student = user.role === "student";
+  const mentor = user.role === "mentor";
+  const portal = student || mentor;
+  const badges = mentor ? { messages: unreadTotal(), notifications: unreadNotificationCount() } : {};
   return (
-    <div className={`min-h-screen ${student ? "bg-[linear-gradient(180deg,#EDF3FF_0,#F6F7F9_280px)]" : "bg-cloud"}`}>
-      {student && <PortalHeader user={user} />}
-      {!student && <header className="sticky top-0 z-40 border-b border-line-soft bg-white">
+    <div className={`min-h-screen ${portal ? "bg-[linear-gradient(180deg,#EDF3FF_0,#F6F7F9_280px)]" : "bg-cloud"}`}>
+      {portal && <PortalHeader user={user} />}
+      {!portal && <header className="sticky top-0 z-40 border-b border-line-soft bg-white">
         <div className="mx-auto flex h-16 max-w-content items-center gap-6 px-5">
           <Link to="/"><Logo /></Link>
           <div className="relative hidden flex-1 max-w-sm md:block">
@@ -51,10 +56,19 @@ export function AppShell({ nav, user, subtitle, children }) {
                 </span>
               </div>
             )}
+            {mentor && (
+              <div className="hidden overflow-hidden rounded-xl bg-brand-gradient p-4 text-white shadow-raised md:block">
+                <Avatar person={user} size="lg" className="ring-2 ring-white/40" />
+                <p className="mt-3 text-sm font-bold leading-tight">{user.name}</p>
+                {user.institution && <p className="mt-0.5 text-xs text-white/80">{user.institution}</p>}
+                <span className="mt-3 inline-flex rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">Mentor</span>
+              </div>
+            )}
             <nav className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
             {nav.map((item) => {
-              const active = location.pathname === item.to;
+              const active = location.pathname === item.to || (item.to !== "/mentor" && item.to !== "/feed" && location.pathname.startsWith(`${item.to}/`));
               const Icon = item.icon;
+              const count = item.badge ? badges[item.badge] : 0;
               return (
                 <Link
                   key={item.to}
@@ -65,6 +79,7 @@ export function AppShell({ nav, user, subtitle, children }) {
                 >
                   <Icon className="h-4 w-4" />
                   {item.label}
+                  {count > 0 && <span className="ml-auto rounded-full bg-violet px-1.5 py-0.5 text-[10px] font-bold text-white" aria-label={`${count} não lidas`}>{count}</span>}
                 </Link>
               );
             })}
@@ -76,3 +91,4 @@ export function AppShell({ nav, user, subtitle, children }) {
     </div>
   );
 }
+

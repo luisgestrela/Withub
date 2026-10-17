@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import PortalHeader from "../components/PortalHeader";
 import { useApi } from "../services/useApi";
+import { getPost, getTeam } from "../services/api";
 import Footer from "../components/Footer";
 import CategoryChip from "../components/CategoryChip";
 import { projects } from "../data/projects";
@@ -18,6 +19,8 @@ export default function ProjectDetail() {
     const { id } = useParams();
     const { user } = useApi();
     const project = projects.find((p) => p.id === id) || projects[0];
+    let team = [];
+    try { getPost(project.id); team = getTeam(project.id); } catch { team = []; }
 
     return (
         <div className="min-h-screen bg-white">
@@ -138,9 +141,18 @@ export default function ProjectDetail() {
                                     </div>
                                 ))}
                             </div>
-                            <div className="mt-4 flex items-center gap-2 border-t border-line-soft pt-4 text-sm text-muted">
-                                <Users className="h-4 w-4" /> Mentor:{" "}
-                                {project.mentor}
+                            <div className="mt-4 flex items-start gap-2 border-t border-line-soft pt-4 text-sm text-muted">
+                                <Users className="mt-0.5 h-4 w-4 shrink-0" />
+                                {team.length > 0 ? (
+                                    <span>
+                                        Mentoria:{" "}
+                                        {team.filter((m) => ["accepted", "active", "ended"].includes(m.status)).map((m, i) => (
+                                            <span key={m.id}>{i > 0 && ", "}<Link to={`/mentores/${m.mentorId}`} className="font-medium text-ink hover:text-blue">{m.name}</Link></span>
+                                        ))}
+                                    </span>
+                                ) : (
+                                    <span>Mentor: {project.mentor}</span>
+                                )}
                             </div>
                             <div className="mt-2 flex items-center gap-2 text-sm text-muted">
                                 <Calendar className="h-4 w-4" /> Validado em{" "}
