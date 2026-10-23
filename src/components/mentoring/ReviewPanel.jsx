@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, PenLine } from "lucide-react";
+import { Check, PenLine, Globe2 } from "lucide-react";
 import StageBadge from "../StageBadge";
 import * as api from "../../services/api";
 
@@ -65,12 +65,15 @@ export default function ReviewPanel({ post, mentoring, act }) {
 
               <div className="border-t border-line-soft pt-4">
                 <label htmlFor="rv-why" className={label}>Justificativa da decisão</label>
-                <p className="mb-1 text-xs text-muted">Obrigatória para solicitar ajustes. Aprovar não publica o projeto: a visibilidade continua com o estudante.</p>
+                <p className="mb-1 text-xs text-muted">Obrigatória para solicitar ajustes. Depois de aprovar, só você (mentor) pode publicar o projeto no feed.</p>
                 <textarea id="rv-why" rows={3} maxLength={2000} value={why} onChange={(e) => setWhy(e.target.value)} className={area} />
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button disabled={!mentoring.transitions.approve} onClick={() => act(() => { api.evaluateProject(post.id, { decision: "approve", justification: why }); setWhy(""); }, "Projeto aprovado.")} className="inline-flex items-center gap-1.5 rounded-md bg-approved px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-40"><Check className="h-3.5 w-3.5" /> Aprovar projeto</button>
                   <button disabled={!mentoring.transitions.adjustments} onClick={() => act(() => { api.evaluateProject(post.id, { decision: "adjustments", justification: why }); setWhy(""); }, "Ajustes solicitados ao estudante.")} className="inline-flex items-center gap-1.5 rounded-md border border-review bg-review-bg px-3 py-1.5 text-xs font-semibold text-review hover:brightness-95 disabled:opacity-40"><PenLine className="h-3.5 w-3.5" /> Solicitar ajustes</button>
+                  <button disabled={!mentoring.transitions.publish} onClick={() => window.confirm("Publicar este projeto no feed público da comunidade?") && act(() => api.publishProject(post.id), "Projeto publicado no feed.")} className="inline-flex items-center gap-1.5 rounded-md bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-40"><Globe2 className="h-3.5 w-3.5" /> Publicar no feed</button>
                 </div>
+                {mentoring.published && <p className="mt-2 text-xs text-approved">Este projeto já está publicado no feed.</p>}
+                {!mentoring.published && !mentoring.transitions.publish && <p className="mt-2 text-xs text-muted">A publicação fica disponível depois que o projeto for aprovado.</p>}
                 {!mentoring.transitions.approve && !mentoring.transitions.adjustments && (
                   <p className="mt-2 text-xs text-muted">A etapa atual ({mentoring.stageLabel || "sem etapa"}) não permite decisão. Quando o estudante reenviar o projeto, a avaliação é liberada.</p>
                 )}

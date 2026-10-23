@@ -9,6 +9,7 @@ export default function ProjectCard({ project }) {
       className="group flex flex-col overflow-hidden rounded-xl border border-line-soft bg-white shadow-card transition hover:-translate-y-0.5 hover:border-line hover:shadow-raised"
     >
       <div className={`relative h-32 bg-gradient-to-br ${project.cover}`}>
+        {project.mediaImg?.[0] && <img src={project.mediaImg[0]} alt={`Capa de ${project.title}`} className="absolute inset-0 h-full w-full object-cover" />}
         <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:16px_16px]" />
         <div className="absolute right-3 top-3">
           <CategoryChip id={project.category} />

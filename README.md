@@ -15,7 +15,10 @@ A pasta `dist/` já contém uma versão pronta (build de produção) — basta a
 - **Cadastro de mentor** cria a conta de verdade (função `mentor`, senha com salt + hash em `state.credentials`) e abre a sessão; o login encaminha cada perfil à página certa (`/mentor` ou `/feed`).
 - **Acesso** é checado no "servidor" simulado (`src/services/api.js`) e nas rotas (`Guard` em `App.jsx`). Um aluno que digita `/mentor` é redirecionado.
 - **Vínculo projeto–mentor** (mentorias): solicitada → aceita → ativa → encerrada (ou recusada). Só mentor com mentoria aceita/ativa vê arquivos confidenciais e só mentor com mentoria ativa avalia. Ofertas e convites de mentores exigem autorização do estudante.
-- **Etapas do projeto**: aguardando avaliação → em mentoria → aguardando ajustes → aprovado → publicado → concluído. Aprovar não publica: a visibilidade continua com o estudante.
+- **Etapas do projeto**: aguardando avaliação → em mentoria → aguardando ajustes → aprovado → publicado → concluído. **Só o mentor publica**: o estudante escolhe um mentor ao criar o projeto (obrigatório para ir ao feed), o mentor aceita o vínculo, inicia o acompanhamento, dá feedbacks, pede ajustes, aprova e então usa “Publicar no feed”. O estudante não consegue tornar o projeto público sozinho.
+- **Visibilidade**: Privado (só o autor), Interno (estudantes e mentores da mesma instituição) e Público (feed, após publicação pelo mentor). “Explorar projetos” do mentor lista apenas projetos ainda não publicados.
+- **Licença**: todo projeto recebe, na criação, uma licença provisória fictícia (código `WH-AAAA-XXXXXX`), exibida na página do projeto.
+- **Compartilhar**: o estudante copia o link do projeto (página do projeto e “Meus Projetos”). Quem não está logado é levado ao cadastro/login e volta ao projeto; projetos não públicos só abrem para quem tem acesso.
 - **Histórico** só cresce (nada é apagado); orientações privadas são visíveis só aos mentores do projeto.
 - **Chat de mentores**: conversa individual sem duplicar, referência a projeto, não lidas e privacidade por participante.
 

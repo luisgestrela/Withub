@@ -17,7 +17,7 @@ export default function OwnerPanel({ post, mentoring, act }) {
           <button onClick={() => act(() => api.resubmitProject(post.id), "Projeto reenviado para avaliação.")} className="mt-2 rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white hover:brightness-110">Reenviar para avaliação</button>
         </div>
       )}
-      {mentoring.stage === "approved" && <p className="mb-4 text-sm text-ink">O projeto foi aprovado pelo mentor. Para publicá-lo no feed, altere a visibilidade em “Gerenciar”.</p>}
+      {mentoring.stage === "approved" && <p className="mb-4 text-sm text-ink">O projeto foi aprovado pelo mentor. A publicação no feed é feita pelo mentor responsável.</p>}
       {mentoring.hasLiveMentorship ? (
         <div>
           <label htmlFor="own-reply" className="block text-xs font-semibold text-ink">Responder ao mentor</label>

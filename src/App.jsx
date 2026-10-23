@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import ProjectDetail from "./pages/ProjectDetail";
 import StudentDashboard from "./pages/StudentDashboard";
 import NewProject from "./pages/NewProject";
@@ -26,7 +26,8 @@ const MENTOR = ["mentor"];
 // Portal do Estudante: tudo, exceto o cadastro, exige estar cadastrado/logado.
 function Protected({ children }) {
     useApi();
-    return isLoggedIn() ? children : <Navigate to="/" replace />;
+    const { pathname } = useLocation();
+    return isLoggedIn() ? children : <Navigate to="/" replace state={{ from: pathname }} />;
 }
 function Guard({ roles, children }) {
     const { user } = useApi();
@@ -35,7 +36,9 @@ function Guard({ roles, children }) {
 }
 function Home() {
     const { user } = useApi();
-    return isLoggedIn() ? <Navigate to={homeFor(user.role)} replace /> : <Register />;
+    const from = useLocation().state?.from;
+    const dest = from?.startsWith("/publicacao/") ? from : homeFor(user.role);
+    return isLoggedIn() ? <Navigate to={dest} replace /> : <Register />;
 }
 
 export default function App() {

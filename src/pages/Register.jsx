@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   GraduationCap, FolderGit2, MessageCircle, Building2, Mail, Lock, User, BookOpen,
   ClipboardCheck, ShieldCheck, MessagesSquare, ArrowRight, ArrowLeft, Briefcase,
@@ -13,11 +13,11 @@ import { INSTITUTIONS, homeFor, registerStudent, signIn } from "../services/api"
 const studentPerks = [
   { icon: FolderGit2, title: "Publique seus projetos", text: "Monte seu portfólio com imagens, skills e tecnologias." },
   { icon: MessageCircle, title: "Interaja com a comunidade", text: "Curtidas, comentários e reposts nos seus trabalhos." },
-  { icon: Building2, title: "Seja visto por empresas", text: "Anexe detalhes técnicos confidenciais para mentores." },
+  { icon: Building2, title: "Seja visto por empresas", text: "Anexe detalhes técnicos confidenciais, acessíveis só a empresas parceiras e à instituição." },
 ];
 const mentorPerks = [
-  { icon: ClipboardCheck, title: "Valide projetos", text: "Aprove, peça ajustes ou comente nos projetos dos estudantes." },
-  { icon: ShieldCheck, title: "Acesse materiais técnicos", text: "Arquivos confidenciais ficam visíveis só para mentores autorizados." },
+  { icon: ClipboardCheck, title: "Valide e publique projetos", text: "Aprove, peça ajustes, comente e publique os projetos dos estudantes." },
+  { icon: ShieldCheck, title: "Acesse materiais técnicos", text: "Publique projetos no feed quando estiverem prontos e acesse materiais dos projetos que acompanha." },
   { icon: MessagesSquare, title: "Converse com outros mentores", text: "Chat exclusivo para a comunidade de mentores." },
 ];
 
@@ -38,6 +38,7 @@ const switchBtn = "inline-flex items-center gap-2 rounded-md border border-white
 
 export default function Register() {
   const navigate = useNavigate();
+  const from = useLocation().state?.from;
   
   const [portal, setPortal] = useState("student");
   const isStudent = portal === "student";
@@ -67,7 +68,7 @@ export default function Register() {
       } else {
         role = signIn(f);
       }
-      navigate(homeFor(role), { replace: true });
+      navigate(from?.startsWith("/publicacao/") ? from : homeFor(role), { replace: true });
     } catch (err) {
       setNotice({ type: "err", text: err.message });
     }
@@ -87,7 +88,7 @@ export default function Register() {
         <div className="reg-bg reg-bg-mentor" />
         <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:22px_22px]" />
         <div className="reg-aside-inner relative">
-        <div className="flex items-center gap-2.5 text-xl font-bold"><img src="/favicon.png" alt="" className="h-8 w-8" /> WitHub</div>
+        <div className="flex items-center gap-2.5 text-xl font-bold"><img src="/favicon.png" alt="" className="h-8 w-8 brightness-0 invert" /> WitHub</div>
 
         <div className="reg-stack">
           <div {...layer("student", "a")}>

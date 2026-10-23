@@ -9,6 +9,8 @@ export class ApiError extends Error {
 export const USERS = [
   { id: "u-eduardo", name: "Eduardo Santos", initials: "ES", role: "student", email: "eduardo.santos@ita.br", institution: "ITA — Instituto Tecnológico de Aeronáutica", course: "Engenharia de Computação" },
   { id: "u-beatriz", name: "Beatriz Alves", initials: "BA", role: "viewer" },
+  { id: "u-mariana", name: "Mariana Alencar", initials: "MA", role: "student", email: "mariana.alencar@ita.br", institution: "ITA — Instituto Tecnológico de Aeronáutica", course: "Engenharia Mecânica" },
+  { id: "u-thiago", name: "Thiago Ramos", initials: "TR", role: "student", email: "thiago.ramos@ita.br", institution: "ITA — Instituto Tecnológico de Aeronáutica", course: "Engenharia de Computação" },
   {
     id: "u-marcelo", name: "Dr. Marcelo Abreu", initials: "MA", role: "mentor", institution: "ITA — Instituto Tecnológico de Aeronáutica",
     position: "Professor e pesquisador em Robótica e Automação", specialties: ["Robótica", "ROS", "LiDAR", "Visão computacional"], steamAreas: ["engineering", "technology"],
@@ -59,6 +61,15 @@ const SESSION = "withub-mock-session";
 const fileStore = new Map(); 
 const hasLS = typeof localStorage !== "undefined";
 
+export const LICENSE_TYPE = "Licença WitHub de Portfólio Acadêmico";
+// Licença fictícia (protótipo): gerada assim que o projeto é criado, com código determinístico.
+export function makeLicense(id, holder, at = Date.now()) {
+  let h = 7;
+  for (const c of `${id}|${at}`) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const code = `WH-${new Date(at).getFullYear()}-${h.toString(36).toUpperCase().padStart(6, "0").slice(-6)}`;
+  return { code, type: LICENSE_TYPE, holder, issuedAt: at, status: "provisional" };
+}
+
 function parseBR(s) {
   const [d, m, y] = String(s).split("/").map(Number);
   return new Date(y, m - 1, d, 12).getTime();
@@ -68,7 +79,7 @@ function seedMentorData(posts) {
   posts.forEach((p) => {
     const src = seedProjects.find((x) => x.id === p.id);
     const mentor = src && USERS.find((u) => u.role === "mentor" && u.name === src.mentor);
-    if (!mentor) return;
+    if (!mentor || src.visibility !== "public") return;
     const sent = parseBR(src.submitted), done = src.validated ? parseBR(src.validated) : sent + 864e5;
     mentorships.push({
       id: `ms-${p.id}`, projectId: p.id, mentorId: mentor.id, status: "active", initiator: "student", role: "Mentor responsável",
@@ -85,15 +96,42 @@ function seedMentorData(posts) {
   });
   return { mentorships, history };
 }
+// Projetos de demonstração ainda NÃO publicados (só o mentor pode publicá-los).
+const UNPUBLISHED_OWNERS = { "drones-genetico": "u-eduardo", "criptografia-iot": "u-thiago", dissipadores: "u-mariana" };
+function seedUnpublished() {
+  const now = Date.now(), DAY = 864e5;
+  const posts = [], mentorships = [], history = [];
+  Object.entries(UNPUBLISHED_OWNERS).forEach(([id, ownerId], i) => {
+    const src = seedProjects.find((x) => x.id === id);
+    if (!src) return;
+    const at = now - (6 + i) * DAY;
+    posts.push({
+      id, ownerId, authorName: src.team[0], title: src.title, description: src.summary, category: src.category, cover: src.cover,
+      images: src.mediaImg || [], skills: [], knowledge: [], tech: src.stack, visibility: "internal", institution: src.institution,
+      createdAt: at, grants: {}, stage: id === "drones-genetico" ? "awaiting" : null, seekingMentor: id !== "drones-genetico",
+      updatedAt: at, publishRequested: true, license: makeLicense(id, src.team[0], at),
+    });
+    if (id === "drones-genetico") {
+      mentorships.push({ id: `ms-${id}`, projectId: id, mentorId: "u-marcelo", status: "requested", initiator: "student", role: "Mentor responsável", requestedAt: at });
+      history.push({ id: `h-${id}-1`, projectId: id, kind: "request", authorId: ownerId, at, summary: "Solicitou mentoria a Dr. Marcelo Abreu", visibility: "shared" });
+    }
+  });
+  return { posts, mentorships, history };
+}
 function seed() {
   const now = Date.now(), DAY = 864e5;
   const posts = seedProjects.filter((p) => p.visibility === "public").map((p, i) => ({
     id: p.id, ownerId: p.id === "rover-lidar" ? "u-eduardo" : `ext-${p.id}`, authorName: p.team[0],
     title: p.title, description: p.summary, category: p.category, cover: p.cover, images: p.mediaImg || [],
     skills: [], knowledge: [], tech: p.stack, visibility: "public", createdAt: now - (i + 1) * DAY, grants: {},
-    stage: null, seekingMentor: false, updatedAt: now - (i + 1) * DAY,
+    stage: null, seekingMentor: false, updatedAt: now - (i + 1) * DAY, institution: p.institution,
+    license: makeLicense(p.id, p.team[0], now - (i + 1) * DAY),
   }));
   const mentorData = seedMentorData(posts);
+  const extra = seedUnpublished();
+  posts.push(...extra.posts);
+  mentorData.mentorships.push(...extra.mentorships);
+  mentorData.history.push(...extra.history);
   return {
     posts,
     restricted: {
@@ -122,6 +160,7 @@ function seed() {
     notifications: [],
     meetings: [],
     notifReads: {},
+    seedExtras: true,
   };
 }
 function migrate(s) {
@@ -136,7 +175,16 @@ function migrate(s) {
     s.mentorships = s.mentorships || d.mentorships;
     s.history = s.history || d.history;
   }
+  if (!s.seedExtras) {
+    const extra = seedUnpublished();
+    extra.posts.forEach((p) => { if (!s.posts.some((x) => x.id === p.id)) s.posts.push(p); });
+    extra.mentorships.forEach((m) => { if (!s.mentorships.some((x) => x.id === m.id)) s.mentorships.push(m); });
+    extra.history.forEach((h) => { if (!s.history.some((x) => x.id === h.id)) s.history.push(h); });
+    s.seedExtras = true;
+  }
   s.posts.forEach((p) => {
+    if (!p.license) p.license = makeLicense(p.id, p.authorName, p.createdAt);
+    if (p.publishRequested === undefined) p.publishRequested = false;
     if (p.stage === undefined) p.stage = null;
     if (p.seekingMentor === undefined) p.seekingMentor = false;
     if (!p.updatedAt) p.updatedAt = p.createdAt;
@@ -223,7 +271,7 @@ const findPost = (id) => {
 const isOwner = (p) => p.ownerId === me().id;
 const VISIBILITIES = ["private", "internal", "public"];
 const normVisibility = (v) => (VISIBILITIES.includes(v) ? v : "private");
-const sameInstitution = (p) => me().role === "student" && !!p.institution && me().institution === p.institution;
+const sameInstitution = (p) => (me().role === "student" || me().role === "mentor") && !!p.institution && me().institution === p.institution;
 const canView = (p) => p.visibility === "public" || isOwner(p) || (p.visibility === "internal" && sameInstitution(p)) || hasMentorAccess(p);
 const visible = (id) => {
   const p = findPost(id);
@@ -246,6 +294,7 @@ function view(p) {
     reposts: state.reposts.filter((r) => r.projectId === p.id).length,
     reposted: state.reposts.some((r) => r.projectId === p.id && r.userId === uid),
     stage: p.stage || null, seekingMentor: !!p.seekingMentor, updatedAt: p.updatedAt || p.createdAt, mentors: publicTeam(p),
+    publishRequested: !!p.publishRequested, license: p.license || null, institution: p.institution || "",
   };
 }
 export function listFeed() {
@@ -260,6 +309,7 @@ export function listFeed() {
 export function listMyProjects() {
   return state.posts.filter((p) => p.ownerId === me().id).map((p) => ({
     id: p.id, title: p.title, category: p.category, visibility: p.visibility, createdAt: p.createdAt, stage: p.stage || null,
+    publishRequested: !!p.publishRequested,
   }));
 }
 export function myStats() {
@@ -311,6 +361,10 @@ export function createProject(data, restrictedFiles = []) {
   const title = String(data.title || "").trim(), description = String(data.description || "").trim();
   if (!title) throw new ApiError(400, "Informe o título do projeto.");
   if (!description) throw new ApiError(400, "Informe a descrição do projeto.");
+  const wantsPublic = data.visibility === "public";
+  const mentorId = String(data.mentorId || "");
+  if (mentorId && userById(mentorId)?.role !== "mentor") throw new ApiError(400, "Selecione um mentor válido.");
+  if (wantsPublic && !mentorId) throw new ApiError(400, "Para ir ao feed público, vincule o projeto a um mentor: só o mentor pode publicá-lo.");
   (data.images || []).forEach((i) => { if (!String(i).startsWith("data:image/")) throw new ApiError(400, "Imagem inválida."); });
   restrictedFiles.forEach((f) => { const e = validateFile("restricted", f); if (e) throw new ApiError(400, e); });
   const id = `p-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -318,11 +372,14 @@ export function createProject(data, restrictedFiles = []) {
     id, ownerId: me().id, authorName: me().name, title, description, category: data.category || "engineering",
     cover: "from-[#0B5FFF] to-[#101820]", images: (data.images || []).slice(0, 12),
     skills: data.skills || [], knowledge: data.knowledge || [], tech: data.tech || [],
-    visibility: normVisibility(data.visibility), institution: me().institution || "", createdAt: Date.now(), grants: {},
+    // Projeto público só nasce público com o aval do mentor: até lá fica privado.
+    visibility: wantsPublic ? "private" : normVisibility(data.visibility), publishRequested: wantsPublic,
+    institution: me().institution || "", createdAt: Date.now(), grants: {},
     stage: null, seekingMentor: !!data.seekingMentor, updatedAt: Date.now(),
+    license: makeLicense(id, me().name),
   });
-  if (restrictedFiles.length) storeRestricted(id, restrictedFiles); 
-  commit();
+  if (restrictedFiles.length) storeRestricted(id, restrictedFiles);
+  if (mentorId) requestMentorship(id, mentorId); else commit();
   return id;
 }
 export function updateProject(id, patch) {
@@ -330,7 +387,13 @@ export function updateProject(id, patch) {
   if (!canEdit(p)) throw new ApiError(403, "Você não tem permissão para editar este projeto.");
   for (const k of ["title", "description", "category"]) if (patch[k] !== undefined) p[k] = String(patch[k]).trim() || p[k];
   for (const k of ["skills", "knowledge", "tech"]) if (patch[k] !== undefined) p[k] = patch[k].slice(0, 20);
-  if (patch.visibility !== undefined) { ownerOnly(p); p.visibility = normVisibility(patch.visibility); }
+  if (patch.visibility !== undefined) {
+    ownerOnly(p);
+    const v = normVisibility(patch.visibility);
+    if (v === "public" && p.visibility !== "public") throw new ApiError(403, "Apenas o mentor responsável pode publicar o projeto no feed.");
+    if (v !== "public") p.publishRequested = false;
+    p.visibility = v;
+  }
   if (patch.seekingMentor !== undefined) { ownerOnly(p); p.seekingMentor = !!patch.seekingMentor; }
   p.updatedAt = Date.now();
   notifyProjectUpdate(p);
@@ -733,6 +796,19 @@ export function evaluateProject(projectId, { decision, justification }) {
   notify(p.ownerId, { key: `dec:${e.id}`, kind: "decision", text: msg, to: toStudentPage(p), projectId: p.id });
   commit();
 }
+export function publishProject(projectId) {
+  requireMentor();
+  const p = visible(projectId);
+  activeLink(p);
+  if (p.visibility === "public") throw new ApiError(409, "Este projeto já está publicado.");
+  if (p.stage !== "approved") throw new ApiError(409, "Aprove o projeto antes de publicá-lo no feed.");
+  p.visibility = "public";
+  p.publishRequested = false;
+  p.publishedAt = Date.now();
+  const e = log(p, "publish", `${me().name} publicou o projeto no feed`, { from: "approved", to: "published" });
+  notify(p.ownerId, { key: `pub:${e.id}`, kind: "decision", text: `${me().name} publicou "${p.title}" no feed da comunidade.`, to: toStudentPage(p), projectId: p.id });
+  commit();
+}
 export function replyToFeedback(projectId, text) {
   requireStudent();
   const p = visible(projectId); ownerOnly(p);
@@ -771,7 +847,9 @@ export function getMentoringState(projectId) {
     canNote: !!mine && LIVE.includes(mine.status),
     canOffer: isMentor() && !isOwner(p) && !pendingMine && !!userById(p.ownerId),
     canHistory: isOwner(p) || (!!mine && ["accepted", "active", "ended"].includes(mine.status)),
-    transitions: { approve: !!mine && mine.status === "active" && DECISIONS.approve.from.includes(p.stage), adjustments: !!mine && mine.status === "active" && DECISIONS.adjustments.from.includes(p.stage) },
+    transitions: { approve: !!mine && mine.status === "active" && DECISIONS.approve.from.includes(p.stage), adjustments: !!mine && mine.status === "active" && DECISIONS.adjustments.from.includes(p.stage),
+      publish: !!mine && mine.status === "active" && p.stage === "approved" && p.visibility !== "public" },
+    published: p.visibility === "public", publishRequested: !!p.publishRequested,
     canResubmit: isOwner(p) && me().role === "student" && p.stage === "adjustments",
     hasLiveMentorship: mentorshipsOf(p.id).some((m) => LIVE.includes(m.status)),
   };
@@ -896,13 +974,14 @@ export function mentorIndicators() {
     }),
   };
 }
-export function recommendProjects() {
+export function exploreProjects() {
   requireMentor();
   const u = userById(me().id);
   const specialties = (u.specialties || []).map((s) => s.toLowerCase()).filter((s) => s.length > 1);
   const areas = u.steamAreas || [];
   const blocked = new Set(state.mentorships.filter((m) => m.mentorId === me().id && PENDING.includes(m.status)).map((m) => m.projectId));
-  return state.posts.filter((p) => p.visibility === "public" && !blocked.has(p.id) && !isOwner(p)).map((p) => {
+  // Só projetos ainda NÃO publicados: a publicação depende do aval do mentor.
+  return state.posts.filter((p) => p.visibility !== "public" && !blocked.has(p.id) && !isOwner(p) && canView(p)).map((p) => {
     const reasons = [];
     if (areas.includes(p.category)) reasons.push(`Área STEAM: ${categories.find((c) => c.id === p.category)?.label || p.category}`);
     const tags = [...p.tech, ...p.skills, ...p.knowledge].map((t) => t.toLowerCase());
@@ -912,9 +991,9 @@ export function recommendProjects() {
       else if (text.includes(s)) reasons.push(`Especialidade "${s}" citada no projeto`);
     });
     return { post: view(p), reasons, seeking: !!p.seekingMentor };
-  }).filter((r) => r.reasons.length > 0)
-    .sort((a, b) => Number(b.seeking) - Number(a.seeking) || b.reasons.length - a.reasons.length || b.post.createdAt - a.post.createdAt);
+  }).sort((a, b) => b.reasons.length - a.reasons.length || Number(b.seeking) - Number(a.seeking) || b.post.createdAt - a.post.createdAt);
 }
+export const recommendProjects = () => exploreProjects().filter((r) => r.reasons.length > 0);
 
 const requireMentor = () => { if (!isMentor()) throw new ApiError(403, "Área exclusiva para mentores."); };
 function member(convId) {
@@ -1017,4 +1096,3 @@ export function startDirectChat(mentorId, projectId) {
   commit();
   return c.id;
 }
-

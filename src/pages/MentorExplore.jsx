@@ -6,9 +6,9 @@ import CategoryChip from "../components/CategoryChip";
 import Notice from "../components/Notice";
 import { categories } from "../data/projects";
 import { useApi } from "../services/useApi";
-import { listFeed, offerMentorship, recommendProjects } from "../services/api";
+import { exploreProjects, offerMentorship, recommendProjects } from "../services/api";
 
-const TABS = [{ key: "recommended", label: "Recomendados" }, { key: "seeking", label: "Procuram mentoria" }, { key: "all", label: "Todos os projetos" }];
+const TABS = [{ key: "recommended", label: "Recomendados" }, { key: "all", label: "Todos os projetos" }];
 
 export default function MentorExplore() {
   const { user } = useApi();
@@ -18,8 +18,9 @@ export default function MentorExplore() {
   const [notice, setNotice] = useState(null);
   const recs = recommendProjects();
   const reasonsOf = new Map(recs.map((r) => [r.post.id, r.reasons]));
-  const posts = listFeed().filter((e) => e.type === "post" && e.post.visibility === "public" && e.post.ownerId !== user.id).map((e) => e.post);
-  const base = tab === "recommended" ? recs.map((r) => r.post) : tab === "seeking" ? posts.filter((p) => p.seekingMentor) : posts;
+  // Só projetos ainda não publicados: a publicação depende do aval do mentor.
+  const posts = exploreProjects().map((r) => r.post);
+  const base = tab === "recommended" ? recs.map((r) => r.post) : posts;
   const needle = q.trim().toLowerCase();
   const list = base.filter((p) => (cat === "all" || p.category === cat) && (!needle || [p.title, p.description, p.authorName, ...p.tech, ...p.skills].join(" ").toLowerCase().includes(needle)));
   const offer = (id) => {
@@ -29,7 +30,7 @@ export default function MentorExplore() {
     <AppShell nav={mentorNavFor(user.id)} user={user} subtitle="Mentor">
       <div className="mb-5">
         <h1 className="text-xl font-bold text-ink">Explorar projetos</h1>
-        <p className="mt-1 text-sm text-muted">Descubra projetos do mesmo feed da plataforma. Oferecer mentoria só vale depois que o estudante autorizar.</p>
+        <p className="mt-1 text-sm text-muted">Projetos ainda não publicados, visíveis para você. Um projeto só vai ao feed com o aval de um mentor. Oferecer mentoria só vale depois que o estudante autorizar.</p>
       </div>
       <Notice notice={notice} />
       <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Seção">
@@ -43,14 +44,14 @@ export default function MentorExplore() {
         </select>
       </div>
       {list.length === 0 ? (
-        <p className="rounded-xl border border-line-soft bg-white p-8 text-center text-sm text-muted">{tab === "recommended" ? "Nenhuma recomendação para o seu perfil. Complete suas especialidades e áreas STEAM no perfil." : "Nenhum projeto encontrado."}</p>
+        <p className="rounded-xl border border-line-soft bg-white p-8 text-center text-sm text-muted">{tab === "recommended" ? "Nenhuma recomendação para o seu perfil. Complete suas especialidades e áreas STEAM no perfil." : "Nenhum projeto não publicado encontrado."}</p>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((p) => (
             <article key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
               {p.images[0] ? <img src={p.images[0]} alt={`Capa de ${p.title}`} className="h-32 w-full object-cover" /> : <div className={`h-32 bg-gradient-to-br ${p.cover}`} />}
               <div className="flex flex-1 flex-col gap-2 p-4">
-                <div className="flex flex-wrap items-center gap-2"><CategoryChip id={p.category} />{p.seekingMentor && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet">Procura mentoria</span>}</div>
+                <div className="flex flex-wrap items-center gap-2"><CategoryChip id={p.category} /><span className="rounded-full bg-draft-bg px-2 py-0.5 text-[11px] font-medium text-draft">Não publicado</span></div>
                 <Link to={`/mentor/projetos/${p.id}`} className="text-[15px] font-semibold leading-snug text-ink hover:text-blue">{p.title}</Link>
                 <p className="text-xs text-muted">por {p.authorName}</p>
                 {tab === "recommended" && <p className="text-xs text-muted">{(reasonsOf.get(p.id) || []).join(" · ")}</p>}

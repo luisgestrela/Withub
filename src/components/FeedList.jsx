@@ -87,7 +87,7 @@ export default function FeedList() {
               </div>
               <Link to={`/publicacao/${p.id}`}>
                 {p.images[0]
-                  ? <img src={p.images[0]} alt={`Capa de ${p.title}`} className="mt-3 h-52 w-full object-cover" />
+                  ? <img src={p.images[0]} alt={`Capa de ${p.title}`} loading="lazy" className="mt-3 aspect-[2/1] w-full object-cover" />
                   : <div className={`mt-3 h-40 bg-gradient-to-br ${p.cover}`} />}
               </Link>
               <div className="space-y-3 p-4">

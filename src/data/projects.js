@@ -44,6 +44,7 @@ export const projects = [
         submitted: "09/02/2026",
         validated: "15/02/2026",
         media: 2,
+        mediaImg: ["/projects/sim-eletromag.jpg", "/projects/sim-eletromag2.jpg"],
     },
     {
         id: "arq-modular",
@@ -61,6 +62,7 @@ export const projects = [
         submitted: "02/02/2026",
         validated: "10/02/2026",
         media: 4,
+        mediaImg: ["/projects/arq-modular.jpg", "/projects/arq-modular2.jpg"],
     },
     {
         id: "previsao-safra",
@@ -78,6 +80,7 @@ export const projects = [
         submitted: "28/01/2026",
         validated: "05/02/2026",
         media: 2,
+        mediaImg: ["/projects/previsao-safra.jpg", "/projects/previsao-safra2.jpg"],
     },
     {
         id: "biosinais",
@@ -112,6 +115,7 @@ export const projects = [
         submitted: "20/01/2026",
         validated: "27/01/2026",
         media: 5,
+        mediaImg: ["/projects/protese-mao.jpg", "/projects/protese-mao2.jpg"],
     },
     {
         id: "drones-genetico",
@@ -129,6 +133,7 @@ export const projects = [
         submitted: "14/02/2026",
         validated: null,
         media: 2,
+        mediaImg: ["/projects/drones-genetico.jpg"],
     },
     {
         id: "criptografia-iot",
@@ -146,6 +151,7 @@ export const projects = [
         submitted: "10/02/2026",
         validated: null,
         media: 1,
+        mediaImg: ["/projects/criptografia-iot.jpg"],
     },
     {
         id: "dissipadores",
@@ -163,6 +169,7 @@ export const projects = [
         submitted: "12/02/2026",
         validated: null,
         media: 2,
+        mediaImg: ["/projects/dissipadores.jpg"],
     },
 ];
 

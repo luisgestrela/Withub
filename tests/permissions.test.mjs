@@ -6,8 +6,18 @@ const thr = (fn, status) => assert.throws(fn, (e) => e instanceof api.ApiError &
 const file = (name, size = 100, type = "application/octet-stream") => ({ name, size, type });
 let n = 0; const t = (name, fn) => { fn(); n++; console.log("ok -", name); };
 
+// Projeto só vai ao feed público depois que um mentor aprova E publica.
+function publishViaMentor(mentorId, data, files = []) {
+  const owner = api.me().id;
+  const pid = api.createProject({ ...data, visibility: "public", mentorId }, files);
+  const ms = api.getTeam(pid).find((m) => m.mentorId === mentorId).id;
+  api.login(mentorId); api.respondMentorship(ms, true); api.startMentorship(ms);
+  api.evaluateProject(pid, { decision: "approve" }); api.publishProject(pid);
+  api.login(owner);
+  return pid;
+}
 api.login("u-eduardo");
-const id = api.createProject({ title: "Teste", description: "Desc", visibility: "public", skills: ["a"] }, []);
+const id = publishViaMentor("u-andre", { title: "Teste", description: "Desc", skills: ["a"] });
 t("publica sem arquivos restritos (opcional)", () => assert.equal(api.getPost(id).title, "Teste"));
 t("projeto sem restritos aparece no feed", () => assert.ok(api.listFeed().some((e) => e.post.id === id)));
 t("dono adiciona arquivo restrito", () => { api.addRestrictedFiles(id, [file("m.step")]); assert.equal(api.getRestrictedFiles(id).length, 1); });
@@ -63,7 +73,22 @@ t("cadastro valida dados e e-mail duplicado", () => {
   thr(() => api.registerStudent({ name: "Ana Souza", email: "x@y.com", institution: api.INSTITUTIONS[0], password: "123" }), 400);
   thr(() => api.registerStudent({ name: "Ana Souza", email: "ana@teste.com", institution: api.INSTITUTIONS[0], password: "12345678" }), 409);
 });
-t("novo estudante publica e vê só os próprios projetos", () => { const pid = api.createProject({ title: "Meu", description: "d", visibility: "public" }); assert.deepEqual(api.listMyProjects().map((p) => p.id), [pid]); assert.equal(api.myStats().published, 1); });
+t("novo estudante só publica no feed com o aval do mentor e todo projeto recebe licença", () => {
+  const ana = api.me().id;
+  thr(() => api.createProject({ title: "Meu", description: "d", visibility: "public" }), 400);
+  const pid = api.createProject({ title: "Meu", description: "d", visibility: "public", mentorId: "u-andre" });
+  assert.deepEqual(api.listMyProjects().map((p) => p.id), [pid]); assert.equal(api.myStats().published, 0);
+  const post = api.getPost(pid);
+  assert.equal(post.visibility, "private"); assert.equal(post.stage, "awaiting"); assert.match(post.license.code, /^WH-\d{4}-[0-9A-Z]{6}$/);
+  thr(() => api.updateProject(pid, { visibility: "public" }), 403);
+  const ms = api.getTeam(pid)[0].id;
+  api.login("u-andre"); thr(() => api.publishProject(pid), 403); api.respondMentorship(ms, true); api.startMentorship(ms);
+  thr(() => api.publishProject(pid), 409); api.evaluateProject(pid, { decision: "approve" });
+  api.login("u-eduardo"); thr(() => api.publishProject(pid), 403);
+  api.login("u-andre"); api.publishProject(pid); thr(() => api.publishProject(pid), 409);
+  api.login(ana); assert.equal(api.myStats().published, 1); assert.equal(api.getPost(pid).visibility, "public");
+  assert.ok(api.myNotifications().some((x) => /publicou/.test(x.text)));
+});
 t("logout e entrar", () => { api.logout(); assert.equal(api.isLoggedIn(), false); thr(() => api.signIn({ email: "ana@teste.com", password: "" }), 401); thr(() => api.signIn({ email: "ana@teste.com", password: "senhaerrada" }), 401); assert.equal(api.signIn({ email: "ana@teste.com", password: "12345678" }), "student"); assert.equal(api.me().name, "Ana Paula Souza"); });
 t("notificações reais: comentário de outro usuário", () => { const pid = api.listMyProjects()[0].id; api.login("u-beatriz"); api.addComment(pid, "Show!"); api.signIn({ email: "ana@teste.com", password: "12345678" }); assert.ok(api.myNotifications().some((x) => x.kind === "comment")); });
 console.log(`\n${n} testes passaram`);
@@ -75,11 +100,12 @@ t("interno aparece no feed do autor e de colegas da mesma instituição", () => 
   api.registerStudent({ name: "Colega Do ITA", email: "colega@ita.br", institution: api.INSTITUTIONS[0], password: "12345678" });
   assert.equal(api.getPost(inId).title, "Interno"); assert.ok(api.listFeed().some((e) => e.post.id === inId));
 });
-t("interno NÃO aparece para outra instituição, visualizador ou mentor", () => {
+t("interno NÃO aparece para outra instituição ou visualizador, mas aparece para mentores da mesma instituição", () => {
   api.registerStudent({ name: "Aluno Da USP", email: "usp@usp.br", institution: api.INSTITUTIONS[1], password: "12345678" });
   thr(() => api.getPost(inId), 404); assert.ok(!api.listFeed().some((e) => e.post.id === inId));
   api.login("u-beatriz"); thr(() => api.getPost(inId), 404);
-  api.login("u-marcelo"); thr(() => api.getPost(inId), 404);
+  api.login("u-renata"); thr(() => api.getPost(inId), 404);
+  api.login("u-marcelo"); assert.equal(api.getPost(inId).title, "Interno");
 });
 t("interno não pode ser repostado e visibilidade inválida vira privada", () => {
   api.signIn({ email: "colega@ita.br", password: "12345678" }); thr(() => api.toggleRepost(inId), 403);
@@ -143,7 +169,7 @@ t("aluno não acessa operações exclusivas de mentor", () => {
 });
 
 api.login("u-eduardo");
-const pj = api.createProject({ title: "Estufa automatizada", description: "Controle de irrigação com Python", visibility: "public", category: "technology", tech: ["Python"], seekingMentor: true }, []);
+const pj = api.createProject({ title: "Estufa automatizada", description: "Controle de irrigação com Python", visibility: "internal", category: "technology", tech: ["Python"], seekingMentor: true }, []);
 t("estudante solicita mentoria e o projeto passa a aguardar avaliação", () => {
   const ms = api.requestMentorship(pj, mariaId);
   assert.equal(api.getPost(pj).stage, "awaiting");
@@ -160,8 +186,8 @@ t("estudante solicita mentoria e o projeto passa a aguardar avaliação", () => 
   assert.equal(api.getPost(pj).stage, "mentoring"); assert.equal(api.listMentorProjects({ status: "mentoring" }).length, 1);
 });
 t("mentor visualiza apenas o que o vínculo permite, e não é atribuído por visualizar", () => {
-  api.login("u-renata"); api.getPost(pj);
-  assert.equal(api.getTeam(pj).filter((m) => m.mentorId === "u-renata").length, 0);
+  api.login("u-marcelo"); api.getPost(pj);
+  assert.equal(api.getTeam(pj).filter((m) => m.mentorId === "u-marcelo").length, 0);
   assert.ok(!api.listMentorProjects().some((r) => r.id === pj));
   thr(() => api.getRestrictedFiles(pj), 403); thr(() => api.sendFeedback(pj, "oi"), 403); thr(() => api.addPrivateNote(pj, "oi"), 403);
 });
@@ -172,7 +198,7 @@ t("avaliação exige vínculo ativo, justificativa para ajustes e registra autor
   api.addPrivateNote(pj, "Verificar o sensor de umidade."); api.sendFeedback(pj, "Documente o circuito.");
   api.evaluateProject(pj, { decision: "adjustments", justification: "Faltam testes do sistema de irrigação." });
   assert.equal(api.getPost(pj).stage, "adjustments"); assert.equal(api.listMentorProjects({ status: "adjustments" }).length, 1);
-  thr(() => api.evaluateProject(pj, { decision: "approve" }), 409);
+  thr(() => api.evaluateProject(pj, { decision: "approve" }), 409); thr(() => api.publishProject(pj), 409);
   const h = api.getHistory(pj);
   assert.ok(h.every((e) => e.authorName && e.at)); assert.ok(h.some((e) => e.kind === "note")); assert.ok(h.some((e) => e.kind === "decision" && e.to === "adjustments"));
 });
@@ -180,7 +206,7 @@ t("estudante vê feedback e decisão, mas não a orientação privada", () => {
   api.login("u-eduardo");
   const h = api.getHistory(pj);
   assert.ok(!h.some((e) => e.kind === "note")); assert.ok(h.some((e) => e.kind === "feedback")); assert.ok(!JSON.stringify(h).includes("sensor de umidade"));
-  api.login("u-renata"); thr(() => api.getHistory(pj), 403);
+  api.login("u-marcelo"); thr(() => api.getHistory(pj), 403);
 });
 t("estudante é notificado sem duplicar e consegue responder e reenviar", () => {
   api.login("u-eduardo");
@@ -198,8 +224,9 @@ t("aprovar não publica automaticamente e projetos aprovados e publicados ficam 
   api.login(mariaId);
   api.evaluateProject(pj, { decision: "approve", justification: "Atende aos critérios." });
   assert.equal(api.getPost(pj).visibility, "internal"); assert.equal(api.listMentorProjects({ status: "approved" }).length, 1); assert.equal(api.listMentorProjects({ status: "published" }).length, 0);
-  api.login("u-eduardo"); api.updateProject(pj, { visibility: "public" });
-  api.login(mariaId);
+  api.login("u-eduardo"); thr(() => api.updateProject(pj, { visibility: "public" }), 403);
+  api.login(mariaId); api.publishProject(pj);
+  assert.equal(api.getPost(pj).visibility, "public");
   assert.equal(api.listMentorProjects({ status: "published" }).length, 1); assert.equal(api.listMentorProjects({ status: "approved" }).length, 0);
   assert.equal(api.mentorDashboard().counts.published, 1);
 });
@@ -243,14 +270,14 @@ t("encerrar mentoria exige vínculo, conclui o projeto sem mentores ativos", () 
   api.login("u-renata"); api.endMentorship(api.getTeam(pj).find((m) => m.mentorId === "u-renata").id);
   assert.equal(api.getPost(pj).stage, "completed");
 });
-t("recomendações explicam o critério usado", () => {
-  api.login(mariaId);
+t("recomendações explicam o critério usado e só trazem projetos ainda não publicados", () => {
+  api.login("u-marcelo");
   const r = api.recommendProjects();
-  assert.ok(Array.isArray(r) && r.every((x) => x.reasons.length > 0));
+  assert.ok(Array.isArray(r) && r.length > 0 && r.every((x) => x.reasons.length > 0 && x.post.visibility !== "public"));
   assert.ok(r.some((x) => x.reasons.some((y) => /Área STEAM/.test(y)) || x.reasons.some((y) => /Especialidade/.test(y))));
 });
 api.login("u-eduardo");
-const pj2 = api.createProject({ title: "Ponte de macarrão", description: "Estrutura leve", visibility: "public", category: "engineering" }, []);
+const pj2 = api.createProject({ title: "Ponte de macarrão", description: "Estrutura leve", visibility: "internal", category: "engineering" }, []);
 t("agenda de mentorias exige acompanhamento ativo", () => {
   const ms = api.requestMentorship(pj2, mariaId);
   api.login(mariaId); api.respondMentorship(ms, true);
@@ -262,7 +289,7 @@ t("agenda de mentorias exige acompanhamento ativo", () => {
   assert.equal(api.listMeetings(pj2).length, 1); assert.equal(api.mentorDashboard().upcoming.length, 1);
   api.login("u-eduardo"); assert.equal(api.listMeetings(pj2).length, 1); thr(() => api.setMeetingStatus(mt, "done"), 403);
   assert.ok(api.myNotifications().some((x) => /encontro/.test(x.text)));
-  api.login("u-renata"); thr(() => api.listMeetings(pj2), 403);
+  api.login("u-marcelo"); thr(() => api.listMeetings(pj2), 403);
   api.login(mariaId); api.setMeetingStatus(mt, "done"); thr(() => api.setMeetingStatus(mt, "cancelled"), 409);
 });
 t("mentor é notificado ao receber solicitação e atualização, sem duplicar", () => {
@@ -302,4 +329,24 @@ t("perfil público lista projetos acompanhados respeitando a visibilidade", () =
   thr(() => api.getMentorProfile("u-eduardo"), 404);
 });
 t("fluxo de dados antigos: estado sem mentorias é migrado", () => assert.ok(api.getTeam("rover-lidar").some((m) => m.mentorId === "u-marcelo")));
+
+t("explorar (mentor) lista só projetos não publicados e os de demonstração aparecem", () => {
+  api.login("u-marcelo");
+  const all = api.exploreProjects();
+  assert.ok(all.length > 0 && all.every((x) => x.post.visibility !== "public"));
+  assert.ok(all.some((x) => x.post.id === "dissipadores") && !all.some((x) => x.post.id === "rover-lidar"));
+  assert.ok(!all.some((x) => x.post.id === "drones-genetico"), "projeto já solicitado a ele não é repetido");
+  assert.ok(api.listMentorProjects().some((r) => r.id === "drones-genetico" && r.pending));
+  api.login("u-renata"); assert.ok(!api.exploreProjects().some((x) => x.post.id === "dissipadores"));
+  api.login("u-eduardo"); thr(() => api.exploreProjects(), 403);
+});
+t("todos os projetos do feed têm imagem e licença", () => {
+  api.login("u-eduardo");
+  const posts = api.listFeed().filter((e) => e.type === "post" && !e.post.id.startsWith("p-")).map((e) => e.post);
+  assert.ok(posts.length >= 5); posts.forEach((p) => { assert.ok(p.images.length > 0, p.id); assert.ok(p.license?.code, p.id); });
+});
+t("oferecer mentoria a projeto interno de demonstração funciona", () => {
+  api.login("u-marcelo"); api.offerMentorship("dissipadores");
+  api.login("u-mariana"); assert.ok(api.myNotifications().some((x) => /ofereceu mentoria/.test(x.text)));
+});
 console.log(`\n${n} testes passaram (total)`);

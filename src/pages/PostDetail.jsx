@@ -6,6 +6,8 @@ import CategoryChip from "../components/CategoryChip";
 import PostActions from "../components/PostActions";
 import Notice from "../components/Notice";
 import RecommendedNotice from "../components/RecommendedNotice";
+import CopyLinkButton from "../components/CopyLinkButton";
+import LicenseCard from "../components/LicenseCard";
 import { Chips } from "../components/FeedList";
 import StageBadge from "../components/StageBadge";
 import MentoringSection from "../components/mentoring/MentoringSection";
@@ -75,7 +77,8 @@ export default function PostDetail() {
                 {mentoring.canHistory && <StageBadge stage={mentoring.stage} visibility={post.visibility} />}
                 {post.seekingMentor && <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet">Procura mentoria</span>}
                 {post.visibility === "private" && <span className="rounded-full bg-draft-bg px-2.5 py-1 text-xs font-medium text-draft">Rascunho privado</span>}
-                {post.visibility === "internal" && <span className="rounded-full bg-draft-bg px-2.5 py-1 text-xs font-medium text-draft">Visível só à sua instituição</span>}
+                {post.visibility === "internal" && <span className="rounded-full bg-draft-bg px-2.5 py-1 text-xs font-medium text-draft">Visível só à instituição (estudantes e mentores)</span>}
+                {post.publishRequested && post.visibility !== "public" && <span className="rounded-full bg-review-bg px-2.5 py-1 text-xs font-medium text-review">Aguardando publicação pelo mentor</span>}
               </div>
               {editing ? (
                 <div className="space-y-3">
@@ -121,7 +124,7 @@ export default function PostDetail() {
           {perms.restricted && (
             <section className="rounded-xl border border-violet/30 bg-white p-5 shadow-card">
               <h2 className="mb-1 flex items-center gap-2 text-sm font-bold text-ink"><Lock className="h-4 w-4 text-violet" /> Arquivos confidenciais</h2>
-              <p className="mb-3 text-xs text-muted">{perms.owner ? "Visíveis apenas para você e para mentores autorizados." : "Acesso de mentor — somente leitura."}</p>
+              <p className="mb-3 text-xs text-muted">{perms.owner ? "Acesso restrito: apenas empresas parceiras com recrutadores e a própria instituição podem acessar. Você e os mentores vinculados também veem." : "Acesso de mentor vinculado — somente leitura."}</p>
               {perms.owner && files.length === 0 && <div className="mb-3"><RecommendedNotice /></div>}
               {files.length === 0 && !perms.owner && <p className="text-sm text-muted">Nenhum arquivo restrito neste projeto.</p>}
               <ul className="space-y-2">
@@ -166,6 +169,14 @@ export default function PostDetail() {
           <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
             <PostActions post={post} onError={(t) => fail(t)} />
           </div>
+          <LicenseCard license={post.license} />
+          {perms.owner && (
+            <div className="space-y-2 rounded-xl border border-line-soft bg-white p-5 shadow-card">
+              <h3 className="text-sm font-bold text-ink">Compartilhar</h3>
+              <CopyLinkButton id={post.id} className="w-full" label="Copiar link do projeto" />
+              <p className="text-xs text-muted">{post.visibility === "public" ? "Qualquer pessoa com conta na plataforma pode abrir este link." : "Este projeto ainda não é público: só quem tem acesso a ele (você, mentores vinculados e, se interno, sua instituição) consegue abrir o link."}</p>
+            </div>
+          )}
           {perms.edit && !editing && (
             <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
               <button onClick={startEdit} className="flex w-full items-center justify-center gap-2 rounded-md border border-line px-3 py-2 text-sm font-semibold text-ink hover:border-blue hover:text-blue"><Pencil className="h-4 w-4" /> Editar projeto</button>
@@ -177,9 +188,10 @@ export default function PostDetail() {
               <label htmlFor="vis" className="block text-xs font-medium text-muted">Visibilidade</label>
               <select id="vis" value={post.visibility} onChange={(e) => act(() => api.updateProject(id, { visibility: e.target.value }), "Visibilidade alterada.")} className="w-full rounded-md border border-line bg-white px-3 py-2 text-sm font-semibold text-ink">
                 <option value="private">Privado (só você)</option>
-                <option value="internal">Interno (sua instituição)</option>
-                <option value="public">Público (feed)</option>
+                <option value="internal">Interno (estudantes e mentores da sua instituição)</option>
+                <option value="public" disabled={post.visibility !== "public"}>Público (feed){post.visibility !== "public" ? " — só o mentor publica" : ""}</option>
               </select>
+              {post.visibility !== "public" && <p className="text-xs text-muted">Para ir ao feed, o projeto precisa ser aprovado e publicado pelo seu mentor.</p>}
               {user.role === "student" && (
                 <label className="flex items-center gap-2 text-xs font-medium text-ink">
                   <input type="checkbox" checked={post.seekingMentor} onChange={(e) => act(() => api.updateProject(id, { seekingMentor: e.target.checked }), e.target.checked ? "Projeto sinalizado como procurando mentoria." : "Sinalização de mentoria removida.")} /> Estou procurando mentoria

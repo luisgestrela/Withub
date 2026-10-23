@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { UploadCloud, Lock, Building2, Globe2, FileText, X } from "lucide-react";
+import { UploadCloud, Lock, Building2, Globe2, FileText, X, UserCheck } from "lucide-react";
 import SocialShell from "../components/SocialShell";
 import Notice from "../components/Notice";
 import RecommendedNotice from "../components/RecommendedNotice";
@@ -13,13 +13,15 @@ import * as api from "../services/api";
 
 const visibilityOptions = [
   { id: "private", label: "Privado", desc: "Visível apenas para você.", icon: Lock },
-  { id: "internal", label: "Interno", desc: "Visível para estudantes da sua instituição.", icon: Building2 },
-  { id: "public", label: "Público", desc: "Visível no feed para toda a comunidade.", icon: Globe2 },
+  { id: "internal", label: "Interno", desc: "Visível apenas para estudantes e mentores da sua instituição.", icon: Building2 },
+  { id: "public", label: "Público", desc: "Visível no feed para toda a comunidade. Só é publicado com o aval do mentor.", icon: Globe2 },
 ];
 
 export default function NewProject() {
   const [visibility, setVisibility] = useState("private");
   const [category, setCategory] = useState("engineering");
+  const [mentorId, setMentorId] = useState("");
+  const mentors = api.listMentors();
   // Arquivos confidenciais são opcionais: a lista pode ficar vazia e o envio não é bloqueado.
   const [restrictedFiles, setRestrictedFiles] = useState([]);
   const restrictedInputRef = useRef(null);
@@ -47,7 +49,7 @@ export default function NewProject() {
     try {
       const id = api.createProject({
         ...form, skills: api.parseList(form.skills), knowledge: api.parseList(form.knowledge), tech: api.parseList(form.tech),
-        category, images: images.map((i) => i.dataUrl), visibility: asDraft ? "private" : visibility,
+        category, images: images.map((i) => i.dataUrl), visibility: asDraft ? "private" : visibility, mentorId: asDraft ? "" : mentorId,
       }, restrictedFiles); // arquivos confidenciais são opcionais: lista vazia é válida
       navigate(`/publicacao/${id}`, { state: { created: true } });
     } catch (e) {
@@ -151,12 +153,28 @@ export default function NewProject() {
             </Field>
           </Section>
 
+          <Section title="Mentor responsável">
+            <p className="text-xs text-muted">
+              Vincule o projeto a um mentor. Ele recebe o projeto na aba “Meus projetos”, aceita o vínculo, dá feedbacks, pode pedir modificações e é quem publica o projeto no feed quando estiver pronto.
+            </p>
+            <Field label={visibility === "public" ? "Mentor (obrigatório para publicar no feed)" : "Mentor (opcional)"}>
+              <select className="input" value={mentorId} onChange={(e) => setMentorId(e.target.value)} aria-label="Mentor responsável">
+                <option value="">Escolher depois</option>
+                {mentors.map((m) => <option key={m.id} value={m.id}>{m.name} — {m.specialties.slice(0, 2).join(", ")}</option>)}
+              </select>
+            </Field>
+            {visibility === "public" && !mentorId && (
+              <p className="flex items-center gap-1.5 text-xs font-medium text-review"><UserCheck className="h-3.5 w-3.5" /> Escolha um mentor: o projeto só entra no feed depois que ele publicar.</p>
+            )}
+          </Section>
+
           <Section title="Arquivos confidenciais (opcional)">
+            <p className="-mt-2 flex items-start gap-1.5 text-xs font-semibold text-violet"><Lock className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Acesso restrito: apenas empresas parceiras com recrutadores e a própria instituição podem acessar estes arquivos.</p>
             <RecommendedNotice />
 
             <p className="text-xs text-muted">
               Modelagem, desenhos técnicos, arquivos de fabricação e confecção, modelos editáveis e documentação técnica.
-              Ficam fora da vitrine pública e só podem ser vistos por mentores autorizados. O envio não é obrigatório.
+              Ficam fora da vitrine pública. O envio não é obrigatório.
             </p>
 
             <input
@@ -171,7 +189,7 @@ export default function NewProject() {
             />
             <div className="flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-line py-8 text-center">
               <Lock className="h-6 w-6 text-muted" />
-              <p className="text-sm font-medium text-ink">Arquivos restritos (somente mentores)</p>
+              <p className="text-sm font-medium text-ink">Arquivos restritos (empresas parceiras e instituição)</p>
               <button
                 type="button"
                 onClick={() => restrictedInputRef.current?.click()}
@@ -244,10 +262,10 @@ export default function NewProject() {
 
           <div className="rounded-xl border border-line-soft bg-white p-5 shadow-card">
             <p className="text-xs text-muted">
-              Imagens, descrição, skills e tecnologias são públicos. Arquivos confidenciais ficam visíveis só para você e mentores.
+              Imagens, descrição, skills e tecnologias são públicos depois da publicação. Arquivos confidenciais só são acessíveis a empresas parceiras com recrutadores e à instituição. Ao criar o projeto, uma licença provisória é gerada automaticamente.
             </p>
             <button disabled={busy || user.role !== "student"} onClick={() => submit(false)} className="mt-4 w-full rounded-md bg-brand-gradient px-4 py-2.5 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50">
-              {busy ? "Salvando…" : { public: "Publicar no feed", internal: "Publicar para minha instituição", private: "Salvar projeto privado" }[visibility]}
+              {busy ? "Salvando…" : { public: "Enviar ao mentor para publicação", internal: "Publicar para minha instituição", private: "Salvar projeto privado" }[visibility]}
             </button>
             <button disabled={busy || user.role !== "student"} onClick={() => submit(true)} className="mt-2 w-full rounded-md border border-line px-4 py-2.5 text-sm font-semibold text-ink hover:border-line disabled:opacity-50">
               Salvar como rascunho
