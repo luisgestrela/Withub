@@ -56,7 +56,7 @@ export default function MentorSignup({ headRef, onSwitch }) {
       <h2 ref={headRef} tabIndex={-1} className="text-3xl font-extrabold tracking-tight text-ink focus:outline-none">{mode === "signup" ? "Cadastro de mentor" : "Entrar como mentor"}</h2>
       <p className="mt-1 text-sm text-muted">{mode === "signup" ? "Crie sua conta para acompanhar projetos, avaliar e conversar com outros mentores." : "Acesse com o e-mail que você cadastrou."}</p>
 
-      <div className="mt-6 rounded-xl border border-line-soft bg-white p-6 shadow-xl shadow-slate-200/50">
+      <div className="mt-6 rounded-xl border border-line-soft bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-6">
         <div className="mb-5 flex gap-1 rounded-lg border border-line-soft bg-slate-50 p-1">{tab("signup", "Criar conta")}{tab("signin", "Entrar")}</div>
         <Notice notice={notice} />
         <form className="space-y-4" onSubmit={submit} noValidate>

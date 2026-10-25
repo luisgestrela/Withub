@@ -10,7 +10,7 @@ const hhmm = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", m
 const preview = (m) => (m.kind === "project" ? "Projeto compartilhado" : m.body);
 const groupPerson = (title) => ({ initials: title.split(" ").map((w) => w[0]).slice(0, 2).join(""), photo: "" });
 
-export default function ChatPanel({ className = "h-[70vh] min-h-[420px]", initialId = null }) {
+export default function ChatPanel({ className = "h-[calc(100dvh_-_13rem)] min-h-[420px] max-h-[48rem]", initialId = null }) {
   const { user } = useApi();
   const [active, setActive] = useState(initialId);
   const [text, setText] = useState("");

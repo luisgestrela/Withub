@@ -78,7 +78,7 @@ export default function NewProject() {
       {user.role !== "student" && (
         <Notice notice={{ type: "err", text: "Apenas estudantes podem publicar projetos. Troque para o perfil de estudante na barra de simulação." }} />
       )}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-6">
           <Section title="Informações gerais">
             <Field label="Título do projeto">

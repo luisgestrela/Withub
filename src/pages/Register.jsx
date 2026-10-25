@@ -23,10 +23,10 @@ const mentorPerks = [
 
 function Perks({ items }) {
   return (
-    <ul className="mt-9 space-y-5">
+    <ul className="reg-perks">
       {items.map(({ icon: Icon, title, text }) => (
-        <li key={title} className="flex gap-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/20"><Icon className="h-5 w-5" /></span>
+        <li key={title} className="flex gap-3.5 xl:gap-4">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 xl:h-11 xl:w-11"><Icon className="h-5 w-5" /></span>
           <span><span className="block font-bold">{title}</span><span className="text-sm text-white/85">{text}</span></span>
         </li>
       ))}
@@ -83,7 +83,7 @@ export default function Register() {
 
   return (
     <div className="reg-stage" data-portal={portal}>
-      <aside className="reg-aside p-12 text-white">
+      <aside className="reg-aside text-white">
         <div className="reg-bg reg-bg-student" />
         <div className="reg-bg reg-bg-mentor" />
         <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_1px_1px,white_1px,transparent_0)] [background-size:22px_22px]" />
@@ -93,18 +93,18 @@ export default function Register() {
         <div className="reg-stack">
           <div {...layer("student", "a")}>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest"><GraduationCap className="h-4 w-4" /> Portal do Estudante</span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight">Seu espaço para mostrar o que você constrói.</h1>
+            <h1 className="reg-title mt-5 font-extrabold tracking-tight">Seu espaço para mostrar o que você constrói.</h1>
             <Perks items={studentPerks} />
-            <div className="mt-9">
+            <div className="reg-cta">
               <p className="mb-3 text-sm text-white/85">É mentor ou docente?</p>
               <button type="button" onClick={() => setPortal("mentor")} className={switchBtn}>Acessar o portal do mentor <ArrowRight className="h-4 w-4" /></button>
             </div>
           </div>
           <div {...layer("mentor", "b")}>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-1.5 text-xs font-bold uppercase tracking-widest"><Briefcase className="h-4 w-4" /> Portal do Mentor</span>
-            <h1 className="mt-5 text-4xl font-extrabold leading-tight tracking-tight">Acompanhe e valide o que seus estudantes constroem.</h1>
+            <h1 className="reg-title mt-5 font-extrabold tracking-tight">Acompanhe e valide o que seus estudantes constroem.</h1>
             <Perks items={mentorPerks} />
-            <div className="mt-9">
+            <div className="reg-cta">
               <p className="mb-3 text-sm text-white/85">É estudante?</p>
               <button type="button" onClick={() => setPortal("student")} className={switchBtn}><ArrowLeft className="h-4 w-4" /> Voltar ao cadastro de estudante</button>
             </div>
@@ -115,7 +115,7 @@ export default function Register() {
         </div>
       </aside>
 
-      <main className="reg-main px-5 py-10 sm:px-12 lg:pt-[7.5rem]">
+      <main className="reg-main px-4 py-8 sm:px-10 sm:py-10 lg:px-8 lg:pt-16 xl:px-12 xl:pt-[7.5rem]">
         <div className="reg-bg reg-bg-light-student" />
         <div className="reg-bg reg-bg-light-mentor" />
         <div className="reg-stack animate-rise mx-auto w-full max-w-md">
@@ -127,7 +127,7 @@ export default function Register() {
             <h2 ref={studentHead} tabIndex={-1} className="text-3xl font-extrabold tracking-tight text-ink focus:outline-none">{mode === "signup" ? "Crie seu cadastro" : "Entrar no portal"}</h2>
             <p className="mt-1 text-sm text-muted">{mode === "signup" ? "Leva menos de um minuto. Depois é só publicar." : "Acesse com o e-mail que você cadastrou."}</p>
 
-            <div className="mt-6 rounded-xl border border-line-soft bg-white p-6 shadow-xl shadow-slate-200/50">
+            <div className="mt-6 rounded-xl border border-line-soft bg-white p-5 shadow-xl shadow-slate-200/50 sm:p-6">
               <div className="mb-5 flex gap-1 rounded-lg border border-line-soft bg-slate-50 p-1">{tab("signup", "Criar conta")}{tab("signin", "Entrar")}</div>
               <Notice notice={notice} />
               <form className="space-y-4" onSubmit={submit} noValidate>

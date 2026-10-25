@@ -12,14 +12,14 @@ export default function ChatWidget() {
   if (user.role !== "mentor" || pathname.startsWith("/mentor/chat")) return null;
   const unread = unreadTotal();
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-4 right-4 z-50 max-w-[calc(100vw_-_2rem)] flex flex-col items-end gap-3">
       {open && (
         <div className="w-[min(94vw,760px)] overflow-hidden rounded-xl bg-white shadow-raised">
           <div className="flex items-center justify-between border-b border-line-soft px-4 py-2">
             <p className="text-sm font-bold text-ink">Chat dos mentores</p>
             <button onClick={() => setOpen(false)} aria-label="Fechar chat" className="rounded p-1 text-muted hover:bg-cloud"><X className="h-4 w-4" /></button>
           </div>
-          <ChatPanel className="h-[65vh] min-h-[380px]" />
+          <ChatPanel className="h-[clamp(320px,calc(100dvh_-_11rem),34rem)]" />
         </div>
       )}
       <button onClick={() => setOpen((v) => !v)} aria-label="Abrir chat dos mentores" aria-expanded={open}

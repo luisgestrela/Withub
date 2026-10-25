@@ -31,7 +31,7 @@ export default function Meetings({ post, mentoring, act }) {
         ))}
       </ul>
       {mentoring.canReview && (
-        <div className="mt-4 grid grid-cols-1 gap-2 border-t border-line-soft pt-4 sm:grid-cols-[200px_1fr_auto]">
+        <div className="mt-4 grid grid-cols-1 gap-2 border-t border-line-soft pt-4 sm:grid-cols-[200px_minmax(0,1fr)_auto]">
           <div>
             <label htmlFor="mt-at" className="block text-xs font-medium text-muted">Data e horário</label>
             <input id="mt-at" type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} className="mt-1 w-full rounded-md border border-line px-2 py-2 text-sm" />

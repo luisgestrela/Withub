@@ -38,7 +38,7 @@ export default function MentorPanel() {
         {cards.map((x) => <Link key={x.label} to={x.to} className="block transition hover:-translate-y-0.5"><StatCard label={x.label} value={String(x.value)} accent={x.accent} /></Link>)}
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className={panel} aria-labelledby="pend-title">
           <h2 id="pend-title" className="text-base font-bold text-ink">Solicitações de mentoria</h2>
           {d.pendingRequests.length === 0 ? <p className="mt-3 text-sm text-muted">Nenhuma solicitação pendente.</p> : (

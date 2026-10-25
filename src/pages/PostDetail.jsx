@@ -67,7 +67,7 @@ export default function PostDetail() {
     <SocialShell>
       <Link to={fromMentor ? "/mentor/projetos" : "/feed"} className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-blue"><ArrowLeft className="h-4 w-4" /> {fromMentor ? "Voltar aos meus projetos" : "Voltar ao feed"}</Link>
       <Notice notice={notice} />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-6">
           <section className="overflow-hidden rounded-xl border border-line-soft bg-white shadow-card">
             {post.images[0] ? <img src={post.images[0]} alt={`Capa de ${post.title}`} className="h-56 w-full object-cover" /> : <div className={`h-40 bg-gradient-to-br ${post.cover}`} />}

@@ -28,7 +28,7 @@ export default function StudentDashboard() {
         <StatCard label="Comentários recebidos" value={String(s.comments)} accent="text-violet" />
       </div>
 
-      <nav aria-label="Acesso rápido" className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <nav aria-label="Acesso rápido" className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         {shortcuts.map(({ to, label, icon: Icon }) => (
           <Link key={to} to={to} className="flex items-center gap-2.5 rounded-xl border border-line-soft bg-white p-3.5 text-sm font-semibold text-ink shadow-card transition hover:border-blue hover:text-blue">
             <Icon className="h-4 w-4 shrink-0 text-blue" /> {label}

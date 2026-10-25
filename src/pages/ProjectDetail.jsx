@@ -26,9 +26,9 @@ export default function ProjectDetail() {
         <div className="min-h-screen bg-white">
             <PortalHeader user={user} />
 
-            <div className={`h-40 bg-gradient-to-br ${project.cover}`} />
+            <div className={`h-32 bg-gradient-to-br sm:h-40 ${project.cover}`} />
 
-            <div className="mx-auto max-w-content px-5">
+            <div className="mx-auto max-w-content px-4 sm:px-5 lg:px-6">
                 <Link
                     to="/feed"
                     className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-blue"
@@ -36,7 +36,7 @@ export default function ProjectDetail() {
                     <ArrowLeft className="h-4 w-4" /> Voltar ao feed
                 </Link>
 
-                <div className="mt-4 grid grid-cols-1 gap-10 pb-16 lg:grid-cols-[1fr_320px]">
+                <div className="mt-4 grid grid-cols-1 gap-8 pb-16 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10 xl:grid-cols-[minmax(0,1fr)_320px]">
                     <div>
                         <div className="flex flex-wrap items-center gap-2">
                             <CategoryChip id={project.category} size="md" />

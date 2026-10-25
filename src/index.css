@@ -49,11 +49,11 @@ body {
 .reg-aside { display: none; position: relative; overflow: hidden; z-index: 2; }
 .reg-main { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; }
 @media (min-width: 1024px) {
-  .reg-stage { grid-template-columns: 1fr 1.1fr; }
-  .reg-aside { display: block; overflow: clip; box-shadow: 0 0 40px rgba(13, 17, 23, 0.18); }
-  .reg-aside-inner { position: sticky; top: 3rem; display: flex; flex-direction: column; min-height: calc(100vh - 6rem); min-height: calc(100dvh - 6rem); }
-  .reg-aside-inner > .reg-stack { margin-top: 2.5rem; }
-  .reg-aside-inner > p:last-child { margin-top: auto; padding-top: 2rem; }
+  .reg-stage { --reg-pad: 2rem; grid-template-columns: 1fr 1.1fr; }
+  .reg-aside { display: block; overflow: clip; padding: var(--reg-pad); box-shadow: 0 0 40px rgba(13, 17, 23, 0.18); }
+  .reg-aside-inner { position: sticky; top: var(--reg-pad); display: flex; flex-direction: column; min-height: calc(100vh - 2 * var(--reg-pad)); min-height: calc(100dvh - 2 * var(--reg-pad)); }
+  .reg-aside-inner > .reg-stack { margin-top: 1.75rem; }
+  .reg-aside-inner > p:last-child { margin-top: auto; padding-top: 1.5rem; }
   .reg-aside, .reg-main { transition: transform var(--reg-dur) var(--reg-ease); will-change: transform; }
   
   .reg-stage[data-portal="mentor"] .reg-aside { transform: translateX(110%); }
@@ -96,4 +96,45 @@ body {
   .reg-layer[data-active="true"] { transition: opacity 200ms linear, visibility 0s; }
 }
 
+/* ------------------------------------------------------------------
+   Ajustes para notebooks (1024–1440px de largura, 600–800px de altura)
+   ------------------------------------------------------------------ */
 
+/* Painel lateral do cadastro: tipografia e espaçamentos escalam com a tela */
+.reg-title { font-size: 1.875rem; line-height: 1.15; }
+.reg-perks { margin-top: 1.5rem; }
+.reg-perks > li + li { margin-top: 1rem; }
+.reg-cta { margin-top: 1.5rem; }
+
+@media (min-width: 1280px) {
+  .reg-stage { --reg-pad: 3rem; }
+  .reg-aside-inner > .reg-stack { margin-top: 2.5rem; }
+  .reg-title { font-size: 2.25rem; line-height: 2.5rem; }
+}
+/* Só aumenta o respiro quando também sobra altura (monitores, não notebooks) */
+@media (min-width: 1280px) and (min-height: 860px) {
+  .reg-perks { margin-top: 2.25rem; }
+  .reg-perks > li + li { margin-top: 1.25rem; }
+  .reg-cta { margin-top: 2.25rem; }
+}
+
+/* Telas largas porém baixas (ex.: 1366×768 com barra do navegador) */
+@media (min-width: 1024px) and (max-height: 820px) {
+  .reg-main { padding-top: 3rem; padding-bottom: 2rem; }
+}
+/* Altura muito curta (zoom/escala do Windows em 125–150%): o painel deixa de ser fixo
+   para o conteúdo nunca ficar cortado — ele rola junto com a página. */
+@media (min-width: 1024px) and (max-height: 680px) {
+  .reg-aside-inner { position: static; min-height: 0; }
+  .reg-aside-inner > p:last-child { margin-top: 1.5rem; }
+}
+
+/* Sidebar do portal: some o cartão de perfil quando a tela é baixa,
+   para o menu sempre caber sem rolagem interna */
+@media (max-height: 700px) {
+  .shell-profile { display: none; }
+}
+
+/* Respeita áreas seguras e evita rolagem horizontal acidental */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: clip; }

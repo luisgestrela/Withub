@@ -33,7 +33,7 @@ export default function MentorIndicators() {
         <StatCard label="Solicitações pendentes" value={String(i.pendingRequests)} accent="text-blue" />
         <StatCard label="Tempo médio de resposta" value={fmtDuration(i.avgResponseMs)} />
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section className="rounded-xl border border-line-soft bg-white p-5 shadow-card" aria-labelledby="ind-hist">
           <h2 id="ind-hist" className="text-base font-bold text-ink">Histórico de avaliações</h2>
           {i.decisions.length === 0 ? <p className="mt-3 text-sm text-muted">Você ainda não registrou nenhuma decisão.</p> : (

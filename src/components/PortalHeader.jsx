@@ -36,19 +36,19 @@ export default function PortalHeader({ user }) {
   return (
     <header className="sticky top-0 z-40 bg-white shadow-card">
       <div className="h-1 bg-brand-gradient" />
-      <div className="mx-auto flex h-16 max-w-content items-center gap-3 px-5 sm:gap-5">
-        <Link to={homeFor(user.role)} className="flex items-center gap-3">
+      <div className="mx-auto flex h-16 max-w-content items-center gap-3 px-4 sm:gap-5 sm:px-5 lg:px-6">
+        <Link to={homeFor(user.role)} className="flex shrink-0 items-center gap-3">
           <Logo />
-          <span className="hidden items-center gap-1.5 rounded-full bg-brand-gradient px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white sm:inline-flex">
+          <span className="hidden items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-gradient px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white lg:inline-flex">
             <BadgeIcon className="h-3.5 w-3.5" /> {mentor ? "Portal do Mentor" : "Portal do Estudante"}
           </span>
         </Link>
-        <form onSubmit={search} role="search" className="relative hidden max-w-sm flex-1 lg:block">
+        <form onSubmit={search} role="search" className="relative hidden min-w-0 max-w-sm flex-1 md:block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar projetos e tecnologias…" aria-label="Buscar no feed" className="w-full rounded-lg border border-line bg-cloud py-2 pl-9 pr-3 text-sm placeholder:text-muted focus:border-blue focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-50" />
         </form>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <Link to={mentor ? "/mentor/notificacoes" : "/aluno/notificacoes"} aria-label={unread ? `Notificações (${unread} não lidas)` : "Notificações"} className="relative rounded-md p-2 text-muted hover:bg-cloud hover:text-ink">
             <Bell className="h-5 w-5" />
             {unread > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-violet px-1 text-[10px] font-bold text-white">{unread}</span>}
@@ -62,8 +62,8 @@ export default function PortalHeader({ user }) {
               className="flex items-center gap-2.5 rounded-lg p-1 pr-2 transition hover:bg-cloud"
             >
               <Avatar person={user} size="md" />
-              <span className="hidden text-left sm:block">
-                <span className="block text-sm font-semibold leading-tight text-ink">{user.name}</span>
+              <span className="hidden max-w-[11rem] text-left sm:block">
+                <span className="block truncate text-sm font-semibold leading-tight text-ink">{user.name}</span>
                 <span className="block text-xs leading-tight text-muted">{mentor ? "Mentor" : "Estudante"}</span>
               </span>
               <ChevronDown className={`h-4 w-4 text-muted transition ${open ? "rotate-180" : ""}`} />
