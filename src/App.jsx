@@ -36,8 +36,9 @@ function Guard({ roles, children }) {
 }
 function Home() {
     const { user, ready } = useApi();
+    const location = useLocation();
     if (!ready) return null;
-    const from = useLocation().state?.from;
+    const from = location.state?.from;
     const dest = from?.startsWith("/publicacao/") ? from : homeFor(user.role);
     return isLoggedIn() ? <Navigate to={dest} replace /> : <Register />;
 }

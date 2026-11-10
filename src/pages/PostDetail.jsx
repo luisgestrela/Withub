@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Lock, FileText, Download, Trash2, Pencil } from "lucide-react";
 import SocialShell from "../components/SocialShell";
@@ -30,14 +30,14 @@ export default function PostDetail() {
   const [mentors, setMentors] = useState([]);
   const [loadError, setLoadError] = useState("");
   const fileRef = useRef(null);
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     try { setContext(await loadProjectDetails(id)); setLoadError(""); }
     catch (error) { setLoadError(error.message); }
-  };
+  }, [id]);
   useEffect(() => {
     refresh();
     loadMentorDirectory().then(setMentors).catch((error) => setLoadError(error.message));
-  }, [id]);
+  }, [id, refresh]);
   const post = context?.post || null;
   const fail = (e) => setNotice({ type: "err", text: e.message || e });
   const act = async (fn, ok) => { try { await fn(); await refresh(); if (ok) setNotice({ type: "ok", text: ok }); } catch (e) { fail(e); } };

@@ -21,7 +21,7 @@ export function AppShell({ nav, user, subtitle, children }) {
     <div className={`min-h-screen ${portal ? "bg-[linear-gradient(180deg,#EDF3FF_0,#F6F7F9_280px)]" : "bg-cloud"}`}>
       {portal && <PortalHeader user={user} />}
       {!portal && <header className="sticky top-0 z-40 border-b border-line-soft bg-white">
-        <div className="mx-auto flex h-16 max-w-content items-center gap-4 px-4 sm:px-5 lg:gap-6 lg:px-6">
+        <div className="mx-auto flex h-16 w-full items-center gap-4 px-4 sm:px-6 lg:gap-6 lg:px-10 xl:px-12">
           <Link to="/"><Logo /></Link>
           <div className="relative hidden flex-1 max-w-sm md:block">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
@@ -49,7 +49,7 @@ export function AppShell({ nav, user, subtitle, children }) {
         </div>
       </header>}
 
-      <div className="mx-auto max-w-content px-4 py-5 sm:px-5 sm:py-6 lg:px-6">
+      <div className="mx-auto w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-10 xl:px-12">
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[208px_minmax(0,1fr)] lg:gap-6 xl:grid-cols-[232px_minmax(0,1fr)]">
           <aside className="min-w-0 space-y-3 lg:sticky lg:top-24 lg:self-start">
             {student && (
@@ -97,4 +97,3 @@ export function AppShell({ nav, user, subtitle, children }) {
     </div>
   );
 }
-

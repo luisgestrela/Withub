@@ -6,7 +6,7 @@ import CategoryChip from "../components/CategoryChip";
 import Notice from "../components/Notice";
 import { categories } from "../data/projects";
 import { useApi } from "../services/useApi";
-import { exploreProjects, offerMentorship, recommendProjects } from "../services/api";
+import { offerMentorship, recommendProjects } from "../services/api";
 
 const TABS = [{ key: "recommended", label: "Recomendados" }, { key: "all", label: "Todos os projetos" }];
 

@@ -23,6 +23,7 @@ export default function NewProject() {
   const [category, setCategory] = useState("engineering");
   const [mentorId, setMentorId] = useState("");
   const [mentors, setMentors] = useState([]);
+  const [notice, setNotice] = useState(null);
   useEffect(() => { loadMentorDirectory().then(setMentors).catch((error) => setNotice({ type: "err", text: error.message })); }, []);
   // Arquivos confidenciais são opcionais: a lista pode ficar vazia e o envio não é bloqueado.
   const [restrictedFiles, setRestrictedFiles] = useState([]);
@@ -32,7 +33,6 @@ export default function NewProject() {
   const { user } = useApi();
   const [form, setForm] = useState({ title: "", description: "", skills: "", knowledge: "", tech: "" });
   const [images, setImages] = useState([]); // { name, dataUrl }
-  const [notice, setNotice] = useState(null);
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 

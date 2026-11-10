@@ -61,8 +61,8 @@ body {
 }
 
 .reg-bg { position: absolute; inset: 0; pointer-events: none; transition: opacity var(--reg-dur) ease-in-out; }
-.reg-bg-student { background: linear-gradient(115deg, #0B7CFF 0%, #4A3DF2 55%, #6425F0 100%); }
-.reg-bg-mentor { background: linear-gradient(115deg, #0A4FD1 0%, #2B2FA8 50%, #161B22 100%); opacity: 0; }
+.reg-bg-student { background: #003C5F; }
+.reg-bg-mentor { background: #003C5F; opacity: 0; }
 .reg-stage[data-portal="mentor"] .reg-bg-student { opacity: 0; }
 .reg-stage[data-portal="mentor"] .reg-bg-mentor { opacity: 1; }
 .reg-bg-light-student { background: radial-gradient(ellipse 120% 100% at 50% -20%, #EDF3FF 0%, #FFFFFF 60%); }

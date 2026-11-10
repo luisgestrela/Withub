@@ -153,6 +153,7 @@ export async function loadMyNotifications() {
 }
 
 export async function loadMentorProjectsFromDatabase(filters = {}) {
+  const f = { status: "all", category: "all", q: "", from: "", to: "", ...filters };
   const { data: userResult, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(userError.message);
   const userId = userResult.user?.id;
@@ -169,7 +170,6 @@ export async function loadMentorProjectsFromDatabase(filters = {}) {
     const link = linksByProject.get(row.id);
     return { id: row.id, key: statusKey, label, title: row.title, cover: row.cover_gradient, image: "", summary: row.description, student: row.author_name, sentAt: link ? Date.parse(link.requested_at) : Date.parse(row.created_at), updatedAt: Date.parse(row.updated_at), category: row.category, visibility: row.visibility, mentors: teams.filter((item) => item.project_id === row.id).map((item) => item.mentor_name), post: mapProject(row) };
   }).filter((row) => {
-    const f = filters;
     return (f.status === "all" || row.key === f.status) && (f.category === "all" || row.category === f.category)
       && (!f.q || row.title.toLowerCase().includes(f.q.trim().toLowerCase()))
       && (!f.from || row.sentAt >= new Date(f.from).getTime())
@@ -186,22 +186,41 @@ export async function loadUnpublishedProjects() {
 }
 
 export async function loadMentorDashboardFromDatabase() {
+  const { data: userResult, error: userError } = await supabase.auth.getUser();
+  if (userError) throw new Error(userError.message);
+  const userId = userResult.user?.id;
+  if (!userId) throw new Error("Entre novamente para acessar o painel do mentor.");
+  const links = unwrap(await supabase.from("mentorships").select("id,project_id,status,initiator,requested_at,responded_at").eq("mentor_id", userId));
   const projects = await loadMentorProjectsFromDatabase();
   const notifications = await loadMyNotifications();
   const conversations = await loadConversations();
   const projectIds = projects.map((item) => item.id);
-  const pendingRequests = projects.filter((item) => { const link = linksByProject.get(item.id); return link?.status === "requested" && link.initiator === "student"; }).map((item) => { const link = linksByProject.get(item.id); return { id: item.id, mentorshipId: link.id, title: item.title, student: item.student, sentAt: Date.parse(link.requested_at) }; });
-  const currentLinks = links;
-  const pendingOffers = currentLinks.filter((item) => item.status === "requested" && item.initiator === "mentor").map((item) => {
+  const projectById = new Map(projects.map((item) => [item.id, item]));
+  const pendingRequests = links.filter((link) => link.status === "requested" && link.initiator === "student").map((link) => {
+    const project = projectById.get(link.project_id);
+    return { id: link.project_id, mentorshipId: link.id, title: project?.title || "Projeto", student: project?.student || "Estudante", sentAt: Date.parse(link.requested_at) };
+  });
+  const pendingOffers = links.filter((item) => item.status === "requested" && item.initiator === "mentor").map((item) => {
     const project = projects.find((row) => row.id === item.project_id);
     return { id: item.project_id, title: project?.title || "Projeto", invited: false, at: Date.parse(item.requested_at) };
   });
   const upcoming = projectIds.length ? unwrap(await supabase.from("project_meetings").select("id,project_id,starts_at,note,status").in("project_id", projectIds).eq("status", "scheduled").gte("starts_at", new Date(Date.now() - 3600000).toISOString()).order("starts_at").limit(5)) : [];
+  const stageOrder = ["awaiting", "mentoring", "adjustments", "approved", "published", "completed"];
+  const stageLabels = { awaiting: "Aguardando avaliação", mentoring: "Em mentoria", adjustments: "Aguardando ajustes", approved: "Aprovados", published: "Publicados", completed: "Concluídos" };
+  const stageBreakdown = stageOrder.map((key) => ({ key, label: stageLabels[key], count: projects.filter((item) => item.key === key).length })).filter((item) => item.count > 0);
+  const attention = [
+    ...pendingRequests.map((item) => ({ id: `request-${item.mentorshipId}`, type: "request", title: item.title, detail: `${item.student} solicitou mentoria`, at: item.sentAt, to: `/mentor/projetos/${item.id}`, action: "Responder" })),
+    ...projects.filter((item) => item.key === "awaiting").map((item) => ({ id: `review-${item.id}`, type: "review", title: item.title, detail: `${item.student} aguarda uma avaliação`, at: item.updatedAt, to: `/mentor/projetos/${item.id}`, action: "Avaliar" })),
+    ...projects.filter((item) => item.key === "approved").map((item) => ({ id: `publish-${item.id}`, type: "publish", title: item.title, detail: "Aprovado e pronto para publicação", at: item.updatedAt, to: `/mentor/projetos/${item.id}`, action: "Publicar" })),
+  ].sort((a, b) => a.at - b.at).slice(0, 8);
   return {
-    counts: { tracked: projects.length, awaiting: projects.filter((item) => item.key === "awaiting").length, approved: projects.filter((item) => item.key === "approved").length, published: projects.filter((item) => item.key === "published").length, adjustments: projects.filter((item) => item.key === "adjustments").length, pendingRequests: pendingRequests.length, unreadConversations: conversations.reduce((sum, item) => sum + item.unread, 0) },
+    counts: { tracked: projects.length, active: links.filter((item) => item.status === "active").length, awaiting: projects.filter((item) => item.key === "awaiting").length, approved: projects.filter((item) => item.key === "approved").length, published: projects.filter((item) => item.key === "published").length, adjustments: projects.filter((item) => item.key === "adjustments").length, pendingRequests: pendingRequests.length, upcomingMeetings: upcoming.length, unreadConversations: conversations.reduce((sum, item) => sum + item.unread, 0) },
     pendingRequests,
     pendingOffers,
     upcoming: upcoming.map((item) => ({ id: item.id, projectId: item.project_id, at: Date.parse(item.starts_at), note: item.note, projectTitle: projects.find((project) => project.id === item.project_id)?.title || "Projeto" })),
+    projects: projects.sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 10),
+    attention,
+    stageBreakdown,
     recent: notifications.slice(0, 6),
   };
 }
@@ -215,7 +234,7 @@ export async function loadMentorIndicatorsFromDatabase() {
   const history = projectIds.length ? unwrap(await supabase.from("project_history_feed").select("id,project_id,author_id,kind,occurred_at,summary").in("project_id", projectIds).eq("author_id", userId)) : [];
   const projects = projectIds.length ? unwrap(await supabase.from("project_feed").select("id,visibility").in("id", projectIds)) : [];
   const responses = links.filter((item) => item.initiator === "student" && item.responded_at).map((item) => Date.parse(item.responded_at) - Date.parse(item.requested_at));
-  return { tracked: projectIds.length, activeMentorships: links.filter((item) => item.status === "active").length, evaluations: history.filter((item) => item.kind === "decision").length, published: projects.filter((item) => item.visibility === "public").length, approvals: history.filter((item) => item.kind === "decision" && item.summary.toLowerCase().includes("aprovou")).length, adjustmentsRequested: history.filter((item) => item.kind === "decision" && item.summary.toLowerCase().includes("ajustes")).length, pendingRequests: links.filter((item) => item.status === "requested" && item.initiator === "student").length, avgResponseMs: responses.length ? responses.reduce((sum, value) => sum + value, 0) / responses.length : null };
+  return { tracked: projectIds.length, activeMentorships: links.filter((item) => item.status === "active").length, evaluations: history.filter((item) => item.kind === "decision").length, published: projects.filter((item) => item.visibility === "public").length, approvals: history.filter((item) => item.kind === "decision" && item.summary.toLowerCase().includes("aprovou")).length, adjustmentsRequested: history.filter((item) => item.kind === "decision" && item.summary.toLowerCase().includes("ajustes")).length, pendingRequests: links.filter((item) => item.status === "requested" && item.initiator === "student").length, answeredRequests: links.filter((item) => item.initiator === "student" && item.responded_at).length, avgResponseMs: responses.length ? responses.reduce((sum, value) => sum + value, 0) / responses.length : null };
 }
 
 export async function startDirectChatInDatabase(mentorId, projectId = null) {

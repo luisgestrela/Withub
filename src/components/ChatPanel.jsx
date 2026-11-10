@@ -33,16 +33,16 @@ export default function ChatPanel({ className = "h-[calc(100dvh_-_13rem)] min-h-
     api.listConversations().then(setConvs).catch((error) => setNotice({ type: "err", text: error.message }));
   }, [allowed, user.id]);
   useEffect(() => {
-    if (!allowed || !current) { setMsgs([]); return; }
+    if (!allowed || !current) return;
     api.getMessages(current.id).then(setMsgs).catch((error) => setNotice({ type: "err", text: error.message }));
-  }, [allowed, current?.id]);
+  }, [allowed, current]);
   useEffect(() => {
     if (allowed && current?.unread > 0) api.markRead(current.id).then(() => api.listConversations().then(setConvs)).catch((error) => setNotice({ type: "err", text: error.message }));
   }, [allowed, current?.id, current?.unread]);
   useEffect(() => { if (allowed) loadMentorDirectory(form.q).then(setOthers).catch((error) => setNotice({ type: "err", text: error.message })); }, [allowed, form.q]);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [msgs.length, active]);
-  useEffect(() => { setActive(null); }, [user.id]);
-  useEffect(() => { if (initialId) setActive(initialId); }, [initialId]);
+  useEffect(() => { queueMicrotask(() => setActive(null)); }, [user.id]);
+  useEffect(() => { if (initialId) queueMicrotask(() => setActive(initialId)); }, [initialId]);
 
   if (!allowed) {
     return (

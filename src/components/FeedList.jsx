@@ -19,6 +19,7 @@ export function Chips({ items, tone = "bg-cloud text-ink" }) {
 export default function FeedList() {
   const { user } = useApi();
   const navigate = useNavigate();
+  const [now] = useState(() => Date.now());
   const [notice, setNotice] = useState(null);
   const [feed, setFeed] = useState([]);
   useEffect(() => {
@@ -33,7 +34,7 @@ export default function FeedList() {
   const [params] = useSearchParams();
   const q = (params.get("q") || "").trim();
   const needle = q.toLowerCase();
-  const since = PERIODS[period] ? Date.now() - PERIODS[period] * 864e5 : 0;
+  const since = PERIODS[period] ? now - PERIODS[period] * 864e5 : 0;
   const entries = feed.filter(({ post: p, at }) => (!needle
     || [p.title, p.description, p.authorName, ...p.skills, ...p.knowledge, ...p.tech].join(" ").toLowerCase().includes(needle))
     && (cat === "all" || p.category === cat) && (!seeking || p.seekingMentor) && at >= since)
@@ -126,4 +127,3 @@ export default function FeedList() {
     </>
   );
 }
-

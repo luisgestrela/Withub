@@ -41,7 +41,6 @@ export default function Register() {
   const from = useLocation().state?.from;
   
   const [portal, setPortal] = useState("student");
-  const isStudent = portal === "student";
 
   
   const [mode, setMode] = useState("signup");
