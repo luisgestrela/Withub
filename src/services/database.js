@@ -1,4 +1,5 @@
 import { supabase } from "./supabase.js";
+import { backendGet } from "./backend.js";
 
 const unwrap = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
 const signedImage = async (path) => {
@@ -23,39 +24,52 @@ function mapProject(row, extras = {}) {
   };
 }
 
-export async function loadCommunityFeed() {
+// Dados brutos do feed público: vêm do backend (com cache) ou, se ele não estiver
+// disponível, direto do Supabase como antes.
+// Depois de uma ação do próprio usuário (curtir, comentar, publicar...), o próximo
+// carregamento do feed pede dados frescos ao backend em vez do cache de 30 s.
+let lastMutationAt = 0;
+const markFeedDirty = () => { lastMutationAt = Date.now(); };
+
+async function fetchFeedData() {
+  const fromApi = await backendGet(Date.now() - lastMutationAt < 60_000 ? "/api/feed?fresh=1" : "/api/feed");
+  if (fromApi?.rows) return fromApi;
   const rows = unwrap(await supabase.from("project_feed").select("*").eq("visibility", "public").order("published_at", { ascending: false }));
   const ids = rows.map((row) => row.id);
-  if (!ids.length) return [];
-  const [{ data: userResult }, teams, imageRows, likes, reposts] = await Promise.all([
-    supabase.auth.getUser(),
+  if (!ids.length) return { rows, teams: [], images: {}, likes: [], reposts: [] };
+  const [teams, imageRows, likes, reposts] = await Promise.all([
     supabase.from("project_team").select("project_id,mentor_id,mentor_name,status,role").in("project_id", ids),
     supabase.from("project_images").select("project_id,storage_path,sort_order").in("project_id", ids).order("sort_order"),
     supabase.from("project_likes").select("project_id,user_id").in("project_id", ids),
     supabase.from("project_reposts").select("project_id,user_id,created_at").in("project_id", ids),
   ]);
-  const userId = userResult?.user?.id;
   for (const result of [teams, imageRows, likes, reposts]) if (result.error) throw new Error(result.error.message);
-  const imagesByProject = new Map();
+  const images = {};
   await Promise.all((imageRows.data || []).map(async (item) => {
-    const url = await signedImage(item.storage_path);
-    const images = imagesByProject.get(item.project_id) || [];
-    images[item.sort_order] = url;
-    imagesByProject.set(item.project_id, images);
+    (images[item.project_id] ||= [])[item.sort_order] = await signedImage(item.storage_path);
   }));
+  return { rows, teams: teams.data || [], images, likes: likes.data || [], reposts: reposts.data || [] };
+}
+
+export async function loadCommunityFeed() {
+  const [{ rows, teams, images, likes, reposts }, { data: userResult }] = await Promise.all([fetchFeedData(), supabase.auth.getUser()]);
+  if (!rows.length) return [];
+  const userId = userResult?.user?.id;
+  const imagesByProject = new Map(Object.entries(images));
+  const teamsData = teams, likesData = likes, repostsData = reposts;
   const byId = new Map(rows.map((row) => [row.id, row]));
   const entries = rows.map((row) => {
-    const projectTeams = (teams.data || []).filter((item) => item.project_id === row.id);
+    const projectTeams = teamsData.filter((item) => item.project_id === row.id);
     const project = mapProject(row, {
       images: imagesByProject.get(row.id) || [],
-      liked: (likes.data || []).some((item) => item.project_id === row.id && item.user_id === userId),
-      reposted: (reposts.data || []).some((item) => item.project_id === row.id && item.user_id === userId),
+      liked: likesData.some((item) => item.project_id === row.id && item.user_id === userId),
+      reposted: repostsData.some((item) => item.project_id === row.id && item.user_id === userId),
       mentors: projectTeams.map((item) => ({ id: item.mentor_id, name: item.mentor_name, status: item.status, role: item.role })),
     });
     return { key: `p-${row.id}`, type: "post", at: project.createdAt, post: project };
   });
   // Reposts são listados separadamente para manter o formato do feed atual.
-  (reposts.data || []).filter((item) => byId.has(item.project_id) && item.user_id !== userId).forEach((item) => {
+  repostsData.filter((item) => byId.has(item.project_id) && item.user_id !== userId).forEach((item) => {
     const row = byId.get(item.project_id);
     entries.push({ key: `r-${item.project_id}-${item.user_id}`, type: "repost", at: Date.parse(item.created_at), post: mapProject(row, { images: imagesByProject.get(row.id) || [] }) });
   });
@@ -63,8 +77,8 @@ export async function loadCommunityFeed() {
 }
 
 export async function loadMentorDirectory(search = "") {
-  let query = supabase.from("mentor_directory").select("id,full_name,institution,avatar_path,position,specialties,steam_areas,bio,education,experience,links").order("full_name");
-  const rows = unwrap(await query);
+  const cached = await backendGet("/api/mentors");
+  const rows = Array.isArray(cached) ? cached : unwrap(await supabase.from("mentor_directory").select("id,full_name,institution,avatar_path,position,specialties,steam_areas,bio,education,experience,links").order("full_name"));
   const needle = search.trim().toLowerCase();
   return rows.filter((row) => !needle || [row.full_name, row.institution, row.position, ...(row.specialties || [])].join(" ").toLowerCase().includes(needle))
     .map((row) => ({ id: row.id, name: row.full_name, initials: row.full_name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase(), institution: row.institution || "", position: row.position, specialties: row.specialties || [], steamAreas: row.steam_areas || [], bio: row.bio, education: row.education, experience: row.experience, links: row.links || {}, photo: row.avatar_path ? supabase.storage.from("withub-avatars").getPublicUrl(row.avatar_path).data.publicUrl : "" }));
@@ -211,6 +225,7 @@ export async function startDirectChatInDatabase(mentorId, projectId = null) {
 }
 
 export async function createProjectInDatabase(data, restrictedFiles = []) {
+  markFeedDirty();
   const id = unwrap(await supabase.rpc("create_project", {
     p_title: data.title.trim(), p_description: data.description.trim(), p_category: data.category,
     p_desired_visibility: data.visibility, p_seeking_mentor: !!data.seekingMentor,
@@ -240,6 +255,7 @@ export async function createProjectInDatabase(data, restrictedFiles = []) {
 }
 
 export async function toggleProjectLike(projectId) {
+  markFeedDirty();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(userError.message);
   const userId = userResult.user?.id;
@@ -256,6 +272,7 @@ export async function toggleProjectLike(projectId) {
 }
 
 export async function toggleProjectRepost(projectId) {
+  markFeedDirty();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(userError.message);
   const userId = userResult.user?.id;
@@ -346,12 +363,14 @@ export async function loadProjectDetails(projectId) {
 }
 
 export async function runProjectRpc(name, params) {
+  markFeedDirty();
   const { data, error } = await supabase.rpc(name, params);
   if (error) throw new Error(error.message);
   return data;
 }
 
 export async function addProjectComment(projectId, text) {
+  markFeedDirty();
   const { data: userResult, error: userError } = await supabase.auth.getUser();
   if (userError) throw new Error(userError.message);
   if (!userResult.user) throw new Error("Entre novamente para comentar.");
@@ -360,6 +379,8 @@ export async function addProjectComment(projectId, text) {
 }
 
 export async function getRestrictedFileUrl(projectId, fileId) {
+  const fromApi = await backendGet(`/api/projects/${encodeURIComponent(projectId)}/files/${encodeURIComponent(fileId)}/download`);
+  if (fromApi?.url) return fromApi;
   const file = unwrap(await supabase.from("project_restricted_files").select("storage_path,original_name").eq("project_id", projectId).eq("id", fileId).single());
   const { data, error } = await supabase.storage.from("withub-project-files").createSignedUrl(file.storage_path, 120);
   if (error) throw new Error(error.message);
@@ -367,6 +388,7 @@ export async function getRestrictedFileUrl(projectId, fileId) {
 }
 
 export async function updateProjectInDatabase(projectId, patch) {
+  markFeedDirty();
   if (patch.visibility !== undefined) {
     const { error } = await supabase.rpc("set_project_visibility", { p_project_id: projectId, p_visibility: patch.visibility });
     if (error) throw new Error(error.message);
@@ -401,6 +423,7 @@ export async function updateProjectInDatabase(projectId, patch) {
 }
 
 export async function softDeleteProject(projectId) {
+  markFeedDirty();
   const { error } = await supabase.rpc("soft_delete_project", { p_project_id: projectId });
   if (error) throw new Error(error.message);
 }
