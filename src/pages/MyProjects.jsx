@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, ChevronRight } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -10,7 +11,8 @@ import CopyLinkButton from "../components/CopyLinkButton";
 
 export default function MyProjects() {
   const { user } = useApi();
-  const rows = projectRows();
+  const [rows, setRows] = useState([]);
+  useEffect(() => { projectRows().then(setRows).catch(() => setRows([])); }, [user.id]);
   return (
     <AppShell nav={studentNav} user={user} subtitle="Estudante">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

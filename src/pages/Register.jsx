@@ -47,6 +47,7 @@ export default function Register() {
   const [mode, setMode] = useState("signup");
   const [f, setF] = useState({ name: "", email: "", institution: "", course: "", password: "", terms: false });
   const [notice, setNotice] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const set = (k) => (e) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   const studentHead = useRef(null);
@@ -58,19 +59,27 @@ export default function Register() {
     return () => cancelAnimationFrame(raf);
   }, [portal]);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       let role = "student";
       if (mode === "signup") {
         if (!f.terms) throw new Error("Aceite os termos de uso e a política de privacidade (LGPD).");
-        registerStudent(f);
+        const result = await registerStudent(f);
+        if (result.needsEmailConfirmation) {
+          setNotice({ type: "ok", text: "Cadastro iniciado. Confirme seu e-mail pelo link enviado para concluir o acesso." });
+          return;
+        }
       } else {
-        role = signIn(f);
+        role = await signIn(f);
       }
       navigate(from?.startsWith("/publicacao/") ? from : homeFor(role), { replace: true });
     } catch (err) {
       setNotice({ type: "err", text: err.message });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -153,8 +162,8 @@ export default function Register() {
                     Li e aceito os termos de uso e a política de privacidade (LGPD).
                   </label>
                 )}
-                <button type="submit" className="w-full rounded-md bg-brand-gradient px-4 py-3 text-sm font-bold text-white transition hover:brightness-110">
-                  {mode === "signup" ? "Criar conta e entrar no portal" : "Entrar"}
+                <button type="submit" disabled={submitting} className="w-full rounded-md bg-brand-gradient px-4 py-3 text-sm font-bold text-white transition hover:brightness-110 disabled:cursor-wait disabled:opacity-60">
+                  {submitting ? "Aguarde…" : mode === "signup" ? "Criar conta e entrar no portal" : "Entrar"}
                 </button>
               </form>
             </div>

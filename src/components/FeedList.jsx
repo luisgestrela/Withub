@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Building2, MessageSquare, Repeat2, X } from "lucide-react";
 import CategoryChip from "./CategoryChip";
@@ -20,6 +20,12 @@ export default function FeedList() {
   const { user } = useApi();
   const navigate = useNavigate();
   const [notice, setNotice] = useState(null);
+  const [feed, setFeed] = useState([]);
+  useEffect(() => {
+    let active = true;
+    listFeed().then((rows) => { if (active) setFeed(rows); }).catch((error) => { if (active) setNotice({ type: "err", text: error.message }); });
+    return () => { active = false; };
+  }, [user.id]);
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState("recent");
   const [period, setPeriod] = useState("all");
@@ -28,12 +34,12 @@ export default function FeedList() {
   const q = (params.get("q") || "").trim();
   const needle = q.toLowerCase();
   const since = PERIODS[period] ? Date.now() - PERIODS[period] * 864e5 : 0;
-  const entries = listFeed().filter(({ post: p, at }) => (!needle
+  const entries = feed.filter(({ post: p, at }) => (!needle
     || [p.title, p.description, p.authorName, ...p.skills, ...p.knowledge, ...p.tech].join(" ").toLowerCase().includes(needle))
     && (cat === "all" || p.category === cat) && (!seeking || p.seekingMentor) && at >= since)
     .sort((a, b) => (sort === "popular" ? popularity(b.post) - popularity(a.post) || b.at - a.at : sort === "oldest" ? a.at - b.at : b.at - a.at));
   const chat = (mentorId, projectId) => {
-    try { navigate(`/mentor/chat/${startDirectChat(mentorId, projectId)}`); } catch (e) { setNotice({ type: "err", text: e.message }); }
+    startDirectChat(mentorId, projectId).then((id) => navigate(`/mentor/chat/${id}`)).catch((e) => setNotice({ type: "err", text: e.message }));
   };
   return (
     <>

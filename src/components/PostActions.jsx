@@ -3,7 +3,7 @@ import { Heart, MessageCircle, Repeat2 } from "lucide-react";
 import * as api from "../services/api";
 
 export default function PostActions({ post, onError }) {
-  const run = (fn) => { try { fn(); } catch (e) { onError?.(e.message); } };
+  const run = (fn) => { Promise.resolve().then(fn).then(() => window.location.reload()).catch((e) => onError?.(e.message)); };
   const base = "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold transition";
   const idle = "text-muted hover:bg-cloud hover:text-ink";
   const own = post.ownerId === api.me().id;

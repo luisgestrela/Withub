@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import Avatar from "../Avatar";
 import { useApi } from "../../services/useApi";
 import * as api from "../../services/api";
+import { loadMentorDirectory } from "../../services/database.js";
 import { MEMBER_STYLE, fmtDate } from "./stages";
 
 const btn = "inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-blue hover:text-blue";
@@ -14,12 +15,14 @@ export default function MentorTeam({ post, mentoring, act }) {
   const navigate = useNavigate();
   const [pick, setPick] = useState("");
   const [invitee, setInvitee] = useState("");
-  const team = api.getTeam(post.id);
+  const team = mentoring.team || [];
+  const [mentorList, setMentorList] = useState([]);
+  useEffect(() => { loadMentorDirectory().then(setMentorList).catch(() => setMentorList([])); }, []);
   const taken = new Set(team.filter((m) => ["requested", "accepted", "active"].includes(m.status)).map((m) => m.mentorId));
-  const candidates = api.listMentors().filter((m) => !m.isMe && !taken.has(m.id));
+  const candidates = mentorList.filter((m) => !m.isMe && m.id !== user.id && !taken.has(m.id));
   const owner = post.perms.owner && user.role === "student";
   const mentorViewer = user.role === "mentor";
-  const chat = (mentorId) => act(() => navigate(`/mentor/chat/${api.startDirectChat(mentorId, post.id)}`));
+  const chat = (mentorId) => act(async () => navigate(`/mentor/chat/${await api.startDirectChat(mentorId, post.id)}`));
 
   return (
     <section className="rounded-xl border border-line-soft bg-white p-5 shadow-card" aria-labelledby="team-title">
@@ -70,7 +73,7 @@ export default function MentorTeam({ post, mentoring, act }) {
               <option value="">Selecione um mentor</option>
               {candidates.map((m) => <option key={m.id} value={m.id}>{m.name} — {m.specialties.slice(0, 2).join(", ")}</option>)}
             </select>
-            <button disabled={!pick} onClick={() => act(() => { api.requestMentorship(post.id, pick); setPick(""); }, "Solicitação enviada ao mentor.")} className="rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Solicitar</button>
+            <button disabled={!pick} onClick={() => act(async () => { await api.requestMentorship(post.id, pick); setPick(""); }, "Solicitação enviada ao mentor.")} className="rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Solicitar</button>
           </div>
           {candidates.length === 0 && <p className="mt-2 text-xs text-muted">Não há outros mentores disponíveis para solicitar.</p>}
         </div>
@@ -91,7 +94,7 @@ export default function MentorTeam({ post, mentoring, act }) {
               <option value="">Selecione um mentor</option>
               {candidates.map((m) => <option key={m.id} value={m.id}>{m.name} — {m.specialties.slice(0, 2).join(", ")}</option>)}
             </select>
-            <button disabled={!invitee} onClick={() => act(() => { api.inviteMentor(post.id, invitee); setInvitee(""); }, "Convite enviado. O estudante precisa autorizar.")} className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-ink hover:border-blue hover:text-blue disabled:opacity-40">Convidar</button>
+            <button disabled={!invitee} onClick={() => act(async () => { await api.inviteMentor(post.id, invitee); setInvitee(""); }, "Convite enviado. O estudante precisa autorizar.")} className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-ink hover:border-blue hover:text-blue disabled:opacity-40">Convidar</button>
           </div>
         </div>
       )}

@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import ProjectDetail from "./pages/ProjectDetail";
 import StudentDashboard from "./pages/StudentDashboard";
 import NewProject from "./pages/NewProject";
 import MentorPanel from "./pages/MentorPanel";
@@ -16,7 +15,6 @@ import MentorExplore from "./pages/MentorExplore";
 import PostDetail from "./pages/PostDetail";
 import Chat from "./pages/Chat";
 import ChatWidget from "./components/ChatWidget";
-import DemoBar from "./components/DemoBar";
 import { useApi } from "./services/useApi";
 import { homeFor, isLoggedIn } from "./services/api";
 
@@ -25,17 +23,20 @@ const MENTOR = ["mentor"];
 
 // Portal do Estudante: tudo, exceto o cadastro, exige estar cadastrado/logado.
 function Protected({ children }) {
-    useApi();
+    const { ready } = useApi();
     const { pathname } = useLocation();
+    if (!ready) return null;
     return isLoggedIn() ? children : <Navigate to="/" replace state={{ from: pathname }} />;
 }
 function Guard({ roles, children }) {
-    const { user } = useApi();
+    const { user, ready } = useApi();
+    if (!ready) return null;
     if (!isLoggedIn()) return <Navigate to="/" replace />;
     return roles.includes(user.role) ? children : <Navigate to={homeFor(user.role)} replace />;
 }
 function Home() {
-    const { user } = useApi();
+    const { user, ready } = useApi();
+    if (!ready) return null;
     const from = useLocation().state?.from;
     const dest = from?.startsWith("/publicacao/") ? from : homeFor(user.role);
     return isLoggedIn() ? <Navigate to={dest} replace /> : <Register />;
@@ -49,7 +50,7 @@ export default function App() {
                 <Route path="/cadastro" element={<Navigate to="/" replace />} />
                 <Route path="/feed" element={<Protected><Feed /></Protected>} />
                 <Route path="/publicacao/:id" element={<Protected><PostDetail /></Protected>} />
-                <Route path="/projeto/:id" element={<Protected><ProjectDetail /></Protected>} />
+                <Route path="/projeto/:id" element={<Protected><PostDetail /></Protected>} />
                 <Route path="/aluno" element={<Guard roles={STUDENT}><StudentDashboard /></Guard>} />
                 <Route path="/aluno/projetos" element={<Guard roles={STUDENT}><MyProjects /></Guard>} />
                 <Route path="/aluno/explorar" element={<Guard roles={STUDENT}><ExploreSteam /></Guard>} />
@@ -69,7 +70,6 @@ export default function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <ChatWidget />
-            <DemoBar />
         </BrowserRouter>
     );
 }

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { mentorNavFor } from "../components/navs";
@@ -14,8 +15,9 @@ const panel = "rounded-xl border border-line-soft bg-white p-5 shadow-card";
 export default function MentorPanel() {
   const { user } = useApi();
   const location = useLocation();
-  const d = mentorDashboard();
-  const recs = recommendProjects().slice(0, 3);
+  const [d, setDashboard] = useState({ counts: { tracked: 0, awaiting: 0, approved: 0, published: 0, adjustments: 0, pendingRequests: 0, unreadConversations: 0 }, pendingRequests: [], pendingOffers: [], upcoming: [], recent: [] });
+  const [recs, setRecs] = useState([]);
+  useEffect(() => { mentorDashboard().then(setDashboard).catch(() => {}); recommendProjects().then((rows) => setRecs(rows.slice(0, 3))).catch(() => setRecs([])); }, [user.id]);
   const c = d.counts;
   const cards = [
     { label: "Projetos acompanhados", value: c.tracked, to: "/mentor/projetos", accent: "text-ink" },

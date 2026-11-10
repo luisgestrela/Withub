@@ -5,6 +5,7 @@ import Notice from "./Notice";
 import Avatar from "./Avatar";
 import { useApi } from "../services/useApi";
 import * as api from "../services/api";
+import { loadMentorDirectory } from "../services/database.js";
 
 const hhmm = (t) => new Date(t).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 const preview = (m) => (m.kind === "project" ? "Projeto compartilhado" : m.body);
@@ -18,15 +19,27 @@ export default function ChatPanel({ className = "h-[calc(100dvh_-_13rem)] min-h-
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ type: "direct", name: "", ids: [], q: "" });
   const [notice, setNotice] = useState(null);
+  const [convs, setConvs] = useState([]);
+  const [msgs, setMsgs] = useState([]);
+  const [others, setOthers] = useState([]);
   const endRef = useRef(null);
 
   const allowed = user.role === "mentor";
-  const convs = allowed ? api.listConversations() : [];
   const current = convs.find((c) => c.id === active);
-  const msgs = allowed && current ? api.getMessages(current.id) : [];
-  const act = (fn) => { try { return fn(); } catch (e) { setNotice({ type: "err", text: e.message }); } };
+  const act = async (fn) => { try { return await fn(); } catch (e) { setNotice({ type: "err", text: e.message }); } };
 
-  useEffect(() => { if (allowed && current && current.unread > 0) api.markRead(current.id); });
+  useEffect(() => {
+    if (!allowed) return;
+    api.listConversations().then(setConvs).catch((error) => setNotice({ type: "err", text: error.message }));
+  }, [allowed, user.id]);
+  useEffect(() => {
+    if (!allowed || !current) { setMsgs([]); return; }
+    api.getMessages(current.id).then(setMsgs).catch((error) => setNotice({ type: "err", text: error.message }));
+  }, [allowed, current?.id]);
+  useEffect(() => {
+    if (allowed && current?.unread > 0) api.markRead(current.id).then(() => api.listConversations().then(setConvs)).catch((error) => setNotice({ type: "err", text: error.message }));
+  }, [allowed, current?.id, current?.unread]);
+  useEffect(() => { if (allowed) loadMentorDirectory(form.q).then(setOthers).catch((error) => setNotice({ type: "err", text: error.message })); }, [allowed, form.q]);
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [msgs.length, active]);
   useEffect(() => { setActive(null); }, [user.id]);
   useEffect(() => { if (initialId) setActive(initialId); }, [initialId]);
@@ -42,18 +55,19 @@ export default function ChatPanel({ className = "h-[calc(100dvh_-_13rem)] min-h-
       </>
     );
   }
-  const others = api.listMentors(form.q).filter((m) => !m.isMe);
+  const otherMentors = others.filter((m) => m.id !== user.id);
   const missing = !!initialId && active === initialId && !current;
-  const send = (kind, body) => act(() => { api.sendMessage(current.id, { kind, body }); if (kind === "text") setText(""); setStickers(false); });
-  const create = () => {
-    const id = act(() => api.createConversation({ type: form.type, name: form.name, memberIds: form.ids }));
+  const send = (kind, body) => act(async () => { await api.sendMessage(current.id, { kind, body }); if (kind === "text") setText(""); setStickers(false); setMsgs(await api.getMessages(current.id)); setConvs(await api.listConversations()); });
+  const create = async () => {
+    const id = await act(() => api.createConversation({ type: form.type, name: form.name, memberIds: form.ids }));
+    if (!id) return;
+    setConvs(await api.listConversations());
     if (id) { setActive(id); setCreating(false); setForm({ type: "direct", name: "", ids: [], q: "" }); setNotice(null); }
   };
   const toggleId = (id) => setForm((f) => ({ ...f, ids: f.type === "direct" ? [id] : f.ids.includes(id) ? f.ids.filter((x) => x !== id) : [...f.ids, id] }));
 
   return (
     <>
-      {!api.isPersistent() && <Notice notice={{ type: "err", text: "O armazenamento do navegador está indisponível: as mensagens só existem nesta sessão e não são salvas." }} />}
       <Notice notice={notice} />
       {missing && <Notice notice={{ type: "err", text: "Conversa não encontrada ou sem acesso." }} />}
       <div className={`grid ${className} grid-cols-1 overflow-hidden rounded-xl border border-line-soft bg-white shadow-card md:grid-cols-[280px_1fr]`}>
@@ -66,8 +80,8 @@ export default function ChatPanel({ className = "h-[calc(100dvh_-_13rem)] min-h-
               </select>
               {form.type === "group" && <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Nome do grupo" aria-label="Nome do grupo" className="w-full rounded-md border border-line px-2 py-1.5" />}
               <input value={form.q} onChange={(e) => setForm({ ...form, q: e.target.value })} placeholder="Buscar por nome, especialidade ou instituição" aria-label="Buscar mentores" className="w-full rounded-md border border-line px-2 py-1.5" />
-              {others.length === 0 && <p className="text-muted">Nenhum mentor encontrado.</p>}
-              {others.map((m) => (
+              {otherMentors.length === 0 && <p className="text-muted">Nenhum mentor encontrado.</p>}
+              {otherMentors.map((m) => (
                 <label key={m.id} className="flex items-center gap-2">
                   <input type={form.type === "direct" ? "radio" : "checkbox"} name="member" checked={form.ids.includes(m.id)} onChange={() => toggleId(m.id)} />
                   <Avatar person={m} size="xs" />

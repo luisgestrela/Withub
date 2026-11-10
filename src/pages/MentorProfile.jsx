@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Building2, GraduationCap, MessageSquare } from "lucide-react";
 import SocialShell from "../components/SocialShell";
@@ -10,6 +10,7 @@ import { categories } from "../data/projects";
 import { useApi } from "../services/useApi";
 import { readPhoto } from "../services/photo";
 import * as api from "../services/api";
+import { loadMyProjects } from "../services/database.js";
 
 const card = "rounded-xl border border-line-soft bg-white p-5 shadow-card";
 const LINKS = [["linkedin", "LinkedIn"], ["github", "GitHub"], ["portfolio", "Portfólio"]];
@@ -35,13 +36,16 @@ export default function MentorProfile() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [projectId, setProjectId] = useState("");
+  const [profile, setProfile] = useState(null);
+  const [profileReady, setProfileReady] = useState(false);
+  const [myProjects, setMyProjects] = useState([]);
   const fileRef = useRef(null);
-
-  let profile = null;
-  try { profile = api.getMentorProfile(id); } catch { profile = null; }
+  useEffect(() => { let active = true; api.getMentorProfile(id).then((row) => { if (active) { setProfile(row); setProfileReady(true); } }).catch((error) => { if (active) { setNotice({ type: "err", text: error.message }); setProfileReady(true); } }); return () => { active = false; }; }, [id]);
+  useEffect(() => { if (user.role === "student") loadMyProjects().then(setMyProjects).catch(() => setMyProjects([])); }, [user.id, user.role]);
   const fail = (e) => setNotice({ type: "err", text: e.message || String(e) });
-  const act = (fn, ok) => { try { fn(); if (ok) setNotice({ type: "ok", text: ok }); } catch (e) { fail(e); } };
+  const act = async (fn, ok) => { try { await fn(); if (ok) setNotice({ type: "ok", text: ok }); } catch (e) { fail(e); } };
 
+  if (!profileReady) return null;
   if (!profile) {
     return (
       <SocialShell>
@@ -51,7 +55,6 @@ export default function MentorProfile() {
     );
   }
 
-  const myProjects = user.role === "student" ? api.listMyProjects() : [];
   const startEdit = () => {
     setDraft({
       name: profile.name, institution: profile.institution, position: profile.position, specialties: profile.specialties.join(", "), steamAreas: profile.steamAreas,
@@ -60,8 +63,9 @@ export default function MentorProfile() {
     setEditing(true);
     setNotice(null);
   };
-  const save = () => act(() => {
-    api.updateMentorProfile({ ...draft, specialties: api.parseList(draft.specialties) });
+  const save = () => act(async () => {
+    await api.updateMentorProfile({ ...draft, specialties: api.parseList(draft.specialties) });
+    setProfile(await api.getMentorProfile(id));
     setEditing(false);
   }, "Perfil atualizado.");
   const pickPhoto = async (file) => {
@@ -69,7 +73,7 @@ export default function MentorProfile() {
     try { const photo = await readPhoto(file); setDraft((d) => ({ ...d, photo })); } catch (e) { fail(e); }
   };
   const toggleArea = (a) => setDraft((d) => ({ ...d, steamAreas: d.steamAreas.includes(a) ? d.steamAreas.filter((x) => x !== a) : [...d.steamAreas, a] }));
-  const chat = () => act(() => navigate(`/mentor/chat/${api.startDirectChat(profile.id)}`));
+  const chat = () => act(async () => navigate(`/mentor/chat/${await api.startDirectChat(profile.id)}`));
   const ind = profile.indicators;
 
   return (

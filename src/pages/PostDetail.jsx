@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, Lock, FileText, Download, Trash2, Pencil } from "lucide-react";
 import SocialShell from "../components/SocialShell";
@@ -13,6 +13,7 @@ import StageBadge from "../components/StageBadge";
 import MentoringSection from "../components/mentoring/MentoringSection";
 import { useApi } from "../services/useApi";
 import * as api from "../services/api";
+import { loadMentorDirectory, loadProjectDetails } from "../services/database.js";
 
 const kb = (n) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1e3))} KB`);
 
@@ -25,40 +26,46 @@ export default function PostDetail() {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({});
   const [comment, setComment] = useState("");
+  const [context, setContext] = useState(null);
+  const [mentors, setMentors] = useState([]);
+  const [loadError, setLoadError] = useState("");
   const fileRef = useRef(null);
-
-  let post = null;
-  try { post = api.getPost(id); } catch { /* 404 */ }
+  const refresh = async () => {
+    try { setContext(await loadProjectDetails(id)); setLoadError(""); }
+    catch (error) { setLoadError(error.message); }
+  };
+  useEffect(() => {
+    refresh();
+    loadMentorDirectory().then(setMentors).catch((error) => setLoadError(error.message));
+  }, [id]);
+  const post = context?.post || null;
   const fail = (e) => setNotice({ type: "err", text: e.message || e });
-  const act = (fn, ok) => { try { fn(); if (ok) setNotice({ type: "ok", text: ok }); } catch (e) { fail(e); } };
+  const act = async (fn, ok) => { try { await fn(); await refresh(); if (ok) setNotice({ type: "ok", text: ok }); } catch (e) { fail(e); } };
 
   if (!post) {
     return (
       <SocialShell>
-        <p className="rounded-xl border border-line-soft bg-white p-8 text-center text-sm text-muted">Projeto não encontrado.</p>
+        <p className="rounded-xl border border-line-soft bg-white p-8 text-center text-sm text-muted">{loadError || "Carregando projeto…"}</p>
         <Link to={location.pathname.startsWith("/mentor/") ? "/mentor/projetos" : "/feed"} className="mt-4 inline-block text-sm text-blue">Voltar</Link>
       </SocialShell>
     );
   }
   const { perms } = post;
-  let files = [];
-  if (perms.restricted) { try { files = api.getRestrictedFiles(id); } catch { /* sem acesso */ } }
-  const comments = api.listComments(id);
-  const mentors = api.listMentors();
-  const mentoring = api.getMentoringState(id);
+  const files = context.files || [];
+  const comments = context.comments || [];
+  const mentoring = context.mentoring;
   const fromMentor = location.pathname.startsWith("/mentor/");
 
   const startEdit = () => {
     setDraft({ title: post.title, description: post.description, skills: post.skills.join(", "), knowledge: post.knowledge.join(", "), tech: post.tech.join(", ") });
     setEditing(true);
   };
-  const saveEdit = () => act(() => {
-    api.updateProject(id, { title: draft.title, description: draft.description, skills: api.parseList(draft.skills), knowledge: api.parseList(draft.knowledge), tech: api.parseList(draft.tech) });
+  const saveEdit = () => act(async () => {
+    await api.updateProject(id, { title: draft.title, description: draft.description, skills: api.parseList(draft.skills), knowledge: api.parseList(draft.knowledge), tech: api.parseList(draft.tech) });
     setEditing(false);
   }, "Projeto atualizado.");
-  const onDownload = (f) => act(() => {
-    const r = api.downloadRestricted(id, f.id);
-    if (!r.url) return setNotice({ type: "ok", text: `"${r.name}" é um arquivo de demonstração (sem conteúdo no protótipo).` });
+  const onDownload = (f) => act(async () => {
+    const r = await api.downloadRestricted(id, f.id);
     const a = document.createElement("a"); a.href = r.url; a.download = r.name; a.click(); URL.revokeObjectURL(r.url);
   });
   const addFiles = (list) => act(() => api.addRestrictedFiles(id, Array.from(list)), "Arquivos restritos adicionados.");
@@ -119,7 +126,7 @@ export default function PostDetail() {
             </section>
           )}
 
-          <MentoringSection post={post} act={act} />
+          <MentoringSection post={post} mentoring={mentoring} history={context.history} meetings={context.meetings} act={act} />
 
           {perms.restricted && (
             <section className="rounded-xl border border-violet/30 bg-white p-5 shadow-card">
@@ -160,7 +167,7 @@ export default function PostDetail() {
             </div>
             <div className="mt-3 flex gap-2">
               <input value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} placeholder="Escreva um comentário…" aria-label="Comentário" className="min-w-0 flex-1 rounded-lg border border-line px-3 py-2 text-sm" />
-              <button onClick={() => act(() => { api.addComment(id, comment); setComment(""); })} className="rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white">Comentar</button>
+              <button onClick={() => act(async () => { await api.addComment(id, comment); setComment(""); })} className="rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white">Comentar</button>
             </div>
           </section>
         </div>
@@ -208,7 +215,7 @@ export default function PostDetail() {
                   );
                 })}
               </div>
-              <button onClick={() => window.confirm("Excluir este projeto definitivamente?") && act(() => { api.deleteProject(id); navigate("/feed"); })} className="flex w-full items-center justify-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Excluir projeto</button>
+              <button onClick={() => window.confirm("Excluir este projeto?") && act(async () => { await api.deleteProject(id); navigate("/feed"); })} className="flex w-full items-center justify-center gap-2 rounded-md border border-red-200 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50"><Trash2 className="h-4 w-4" /> Excluir projeto</button>
             </div>
           )}
         </aside>

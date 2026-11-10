@@ -20,6 +20,7 @@ export default function MentorSignup({ headRef, onSwitch }) {
   const [m, setM] = useState(empty);
   const [login, setLogin] = useState({ email: "", password: "" });
   const [notice, setNotice] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef(null);
   const set = (k) => (e) => setM((s) => ({ ...s, [k]: e.target.value }));
   const setLink = (k) => (e) => setM((s) => ({ ...s, links: { ...s.links, [k]: e.target.value } }));
@@ -29,18 +30,26 @@ export default function MentorSignup({ headRef, onSwitch }) {
     if (!file) return;
     try { const photo = await readPhoto(file); setM((s) => ({ ...s, photo })); setNotice(null); } catch (err) { setNotice({ type: "err", text: err.message }); }
   };
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       if (mode === "signup") {
         if (!m.terms) throw new Error("Aceite os termos de uso e a política de privacidade (LGPD).");
-        registerMentor({ ...m, specialties: parseList(m.specialties) });
+        const result = await registerMentor({ ...m, specialties: parseList(m.specialties) });
+        if (result.needsEmailConfirmation) {
+          setNotice({ type: "ok", text: "Cadastro iniciado. Confirme seu e-mail pelo link enviado para concluir o acesso." });
+          return;
+        }
         navigate("/mentor", { replace: true, state: { welcome: true } });
       } else {
-        navigate(homeFor(signIn(login)), { replace: true });
+        navigate(homeFor(await signIn(login)), { replace: true });
       }
     } catch (err) {
       setNotice({ type: "err", text: err.message });
+    } finally {
+      setSubmitting(false);
     }
   };
   const tab = (md, label) => (
@@ -64,7 +73,7 @@ export default function MentorSignup({ headRef, onSwitch }) {
             <>
               <Field id="ml-email" label="E-mail" icon={Mail}><input id="ml-email" type="email" required autoComplete="email" value={login.email} onChange={(e) => setLogin({ ...login, email: e.target.value })} className={fieldClass} /></Field>
               <Field id="ml-password" label="Senha" icon={Lock}><input id="ml-password" type="password" required autoComplete="current-password" value={login.password} onChange={(e) => setLogin({ ...login, password: e.target.value })} className={fieldClass} /></Field>
-              <button type="submit" className="w-full rounded-md bg-graphite px-4 py-3 text-sm font-bold text-white transition hover:brightness-125">Entrar</button>
+              <button type="submit" disabled={submitting} className="w-full rounded-md bg-graphite px-4 py-3 text-sm font-bold text-white transition hover:brightness-125 disabled:cursor-wait disabled:opacity-60">{submitting ? "Aguarde…" : "Entrar"}</button>
             </>
           ) : (
             <>
@@ -101,7 +110,7 @@ export default function MentorSignup({ headRef, onSwitch }) {
                 <input type="checkbox" checked={m.terms} onChange={(e) => setM((s) => ({ ...s, terms: e.target.checked }))} className="mt-0.5 h-4 w-4 rounded border-line text-blue" />
                 Li e aceito os termos de uso e a política de privacidade (LGPD).
               </label>
-              <button type="submit" className="w-full rounded-md bg-graphite px-4 py-3 text-sm font-bold text-white transition hover:brightness-125">Criar conta de mentor</button>
+              <button type="submit" disabled={submitting} className="w-full rounded-md bg-graphite px-4 py-3 text-sm font-bold text-white transition hover:brightness-125 disabled:cursor-wait disabled:opacity-60">{submitting ? "Aguarde…" : "Criar conta de mentor"}</button>
             </>
           )}
         </form>

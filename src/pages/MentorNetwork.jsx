@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MessageSquare, Search } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -13,10 +13,9 @@ export default function MentorNetwork() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [notice, setNotice] = useState(null);
-  const mentors = listMentors(q).filter((m) => !m.isMe);
-  const chat = (id) => {
-    try { navigate(`/mentor/chat/${startDirectChat(id)}`); } catch (e) { setNotice({ type: "err", text: e.message }); }
-  };
+  const [mentors, setMentors] = useState([]);
+  useEffect(() => { let active = true; listMentors(q).then((rows) => { if (active) setMentors(rows.filter((m) => m.id !== user.id)); }).catch((error) => setNotice({ type: "err", text: error.message })); return () => { active = false; }; }, [q, user.id]);
+  const chat = (id) => startDirectChat(id).then((conversationId) => navigate(`/mentor/chat/${conversationId}`)).catch((e) => setNotice({ type: "err", text: e.message }));
   return (
     <AppShell nav={mentorNavFor(user.id)} user={user} subtitle="Mentor">
       <div className="mb-5">

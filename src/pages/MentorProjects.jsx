@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { mentorNavFor } from "../components/navs";
@@ -19,8 +19,10 @@ export default function MentorProjects() {
   const [category, setCategory] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const all = listMentorProjects();
-  const rows = listMentorProjects({ q, status, category, from, to });
+  const [all, setAll] = useState([]);
+  const [rows, setRows] = useState([]);
+  useEffect(() => { let active = true; listMentorProjects().then((data) => { if (active) setAll(data); }).catch(() => setAll([])); return () => { active = false; }; }, [user.id]);
+  useEffect(() => { let active = true; listMentorProjects({ q, status, category, from, to }).then((data) => { if (active) setRows(data); }).catch(() => setRows([])); return () => { active = false; }; }, [user.id, q, status, category, from, to]);
   const tabs = [{ key: "all", label: "Todos" }, ...TABS];
   const countOf = (k) => (k === "all" ? all.length : all.filter((r) => r.key === k).length);
   const setStatus = (k) => setParams(k === "all" ? {} : { status: k });

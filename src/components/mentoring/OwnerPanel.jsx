@@ -22,7 +22,7 @@ export default function OwnerPanel({ post, mentoring, act }) {
         <div>
           <label htmlFor="own-reply" className="block text-xs font-semibold text-ink">Responder ao mentor</label>
           <textarea id="own-reply" rows={3} maxLength={2000} value={reply} onChange={(e) => setReply(e.target.value)} className="mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm text-ink focus:border-blue focus:outline-none focus:ring-1 focus:ring-blue" />
-          <button disabled={!reply.trim()} onClick={() => act(() => { api.replyToFeedback(post.id, reply); setReply(""); }, "Resposta enviada aos mentores.")} className="mt-2 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-blue hover:text-blue disabled:opacity-40">Enviar resposta</button>
+          <button disabled={!reply.trim()} onClick={() => act(async () => { await api.replyToFeedback(post.id, reply); setReply(""); }, "Resposta enviada aos mentores.")} className="mt-2 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-blue hover:text-blue disabled:opacity-40">Enviar resposta</button>
         </div>
       ) : (
         <p className="text-sm text-muted">Não há mentoria em andamento no momento.</p>

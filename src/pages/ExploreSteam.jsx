@@ -1,17 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppShell } from "../components/AppShell";
 import { studentNav } from "../components/navs";
 import ProjectCard from "../components/ProjectCard";
-import { categories, projects } from "../data/projects";
+import { categories } from "../data/projects";
 import { useApi } from "../services/useApi";
+import { listFeed } from "../services/api";
 
 export default function ExploreSteam() {
   const { user } = useApi();
   const [cat, setCat] = useState(null);
   const [q, setQ] = useState("");
+  const [projects, setProjects] = useState([]);
+  useEffect(() => { let active = true; listFeed().then((rows) => { if (active) setProjects(rows.map((row) => row.post)); }).catch(() => { if (active) setProjects([]); }); return () => { active = false; }; }, [user.id]);
   const list = projects.filter((p) => p.visibility === "public"
     && (!cat || p.category === cat)
-    && (`${p.title} ${p.stack.join(" ")} ${p.institution}`.toLowerCase().includes(q.trim().toLowerCase())));
+    && (`${p.title} ${(p.tech || []).join(" ")} ${p.institution}`.toLowerCase().includes(q.trim().toLowerCase())))
+    .map((p) => ({ ...p, stack: p.tech || [], team: p.mentors || [], status: p.stage }));
   return (
     <AppShell nav={studentNav} user={user} subtitle="Estudante">
       <div className="mb-5">

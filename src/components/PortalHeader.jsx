@@ -11,7 +11,8 @@ export default function PortalHeader({ user }) {
   const box = useRef(null);
   const [params] = useSearchParams();
   const [q, setQ] = useState(params.get("q") || "");
-  const unread = unreadNotificationCount();
+  const [unread, setUnread] = useState(0);
+  useEffect(() => { unreadNotificationCount().then(setUnread).catch(() => setUnread(0)); }, [user.id]);
   const mentor = user.role === "mentor";
   const BadgeIcon = mentor ? Briefcase : GraduationCap;
   
@@ -29,8 +30,7 @@ export default function PortalHeader({ user }) {
 
   const exit = () => {
     setOpen(false);
-    logout();
-    navigate("/", { replace: true });
+    logout().finally(() => navigate("/", { replace: true }));
   };
 
   return (

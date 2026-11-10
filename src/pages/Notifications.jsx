@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Calendar, CircleCheck, ClipboardCheck, FileText, MessageCircle, MessageSquare, Repeat2 } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -9,14 +10,15 @@ const ICON = { comment: MessageCircle, repost: Repeat2, request: ClipboardCheck,
 
 export default function Notifications() {
   const { user } = useApi();
-  const items = myNotifications();
+  const [items, setItems] = useState([]);
+  useEffect(() => { myNotifications().then(setItems).catch(() => setItems([])); }, [user.id]);
   const unread = items.filter((i) => !i.read).length;
   const mentor = user.role === "mentor";
   return (
     <AppShell nav={mentor ? mentorNavFor(user.id) : studentNav} user={user} subtitle={mentor ? "Mentor" : "Estudante"}>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="text-xl font-bold text-ink">Notificações</h1><p className="mt-1 text-sm text-muted">{unread ? `${unread} não lidas` : "Tudo em dia."}</p></div>
-        <button onClick={() => markNotificationsRead(items.map((i) => i.id))} disabled={!unread} className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-blue hover:text-blue disabled:opacity-40">Marcar todas como lidas</button>
+        <button onClick={() => markNotificationsRead(items.filter((i) => !i.read).map((i) => i.id)).then(() => myNotifications().then(setItems))} disabled={!unread} className="rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink hover:border-blue hover:text-blue disabled:opacity-40">Marcar todas como lidas</button>
       </div>
       {items.length === 0 ? (
         <p className="rounded-xl border border-line-soft bg-white p-10 text-center text-sm text-muted">{mentor ? "Solicitações, mensagens e atualizações dos projetos acompanhados aparecerão aqui." : "Quando alguém comentar, repostar ou o mentor avaliar seus projetos, você verá aqui."}</p>

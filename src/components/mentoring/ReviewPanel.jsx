@@ -51,7 +51,7 @@ export default function ReviewPanel({ post, mentoring, act }) {
             <label htmlFor="rv-note" className={label}>Orientação privada</label>
             <p className="mb-1 text-xs text-muted">Visível apenas para os mentores deste projeto. O estudante não vê.</p>
             <textarea id="rv-note" rows={3} maxLength={2000} value={note} onChange={(e) => setNote(e.target.value)} className={area} />
-            <button disabled={!note.trim()} onClick={() => act(() => { api.addPrivateNote(post.id, note); setNote(""); }, "Orientação privada registrada.")} className={`mt-2 ${ghost}`}>Salvar orientação</button>
+            <button disabled={!note.trim()} onClick={() => act(async () => { await api.addPrivateNote(post.id, note); setNote(""); }, "Orientação privada registrada.")} className={`mt-2 ${ghost}`}>Salvar orientação</button>
           </div>
 
           {mentoring.canReview && (
@@ -60,7 +60,7 @@ export default function ReviewPanel({ post, mentoring, act }) {
                 <label htmlFor="rv-feedback" className={label}>Feedback ao estudante</label>
                 <p className="mb-1 text-xs text-muted">O estudante é notificado e vê este texto no histórico.</p>
                 <textarea id="rv-feedback" rows={3} maxLength={2000} value={feedback} onChange={(e) => setFeedback(e.target.value)} className={area} />
-                <button disabled={!feedback.trim()} onClick={() => act(() => { api.sendFeedback(post.id, feedback); setFeedback(""); }, "Feedback enviado ao estudante.")} className={`mt-2 ${ghost}`}>Enviar feedback</button>
+                <button disabled={!feedback.trim()} onClick={() => act(async () => { await api.sendFeedback(post.id, feedback); setFeedback(""); }, "Feedback enviado ao estudante.")} className={`mt-2 ${ghost}`}>Enviar feedback</button>
               </div>
 
               <div className="border-t border-line-soft pt-4">
@@ -68,8 +68,8 @@ export default function ReviewPanel({ post, mentoring, act }) {
                 <p className="mb-1 text-xs text-muted">Obrigatória para solicitar ajustes. Depois de aprovar, só você (mentor) pode publicar o projeto no feed.</p>
                 <textarea id="rv-why" rows={3} maxLength={2000} value={why} onChange={(e) => setWhy(e.target.value)} className={area} />
                 <div className="mt-2 flex flex-wrap gap-2">
-                  <button disabled={!mentoring.transitions.approve} onClick={() => act(() => { api.evaluateProject(post.id, { decision: "approve", justification: why }); setWhy(""); }, "Projeto aprovado.")} className="inline-flex items-center gap-1.5 rounded-md bg-approved px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-40"><Check className="h-3.5 w-3.5" /> Aprovar projeto</button>
-                  <button disabled={!mentoring.transitions.adjustments} onClick={() => act(() => { api.evaluateProject(post.id, { decision: "adjustments", justification: why }); setWhy(""); }, "Ajustes solicitados ao estudante.")} className="inline-flex items-center gap-1.5 rounded-md border border-review bg-review-bg px-3 py-1.5 text-xs font-semibold text-review hover:brightness-95 disabled:opacity-40"><PenLine className="h-3.5 w-3.5" /> Solicitar ajustes</button>
+                  <button disabled={!mentoring.transitions.approve} onClick={() => act(async () => { await api.evaluateProject(post.id, { decision: "approve", justification: why }); setWhy(""); }, "Projeto aprovado.")} className="inline-flex items-center gap-1.5 rounded-md bg-approved px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-40"><Check className="h-3.5 w-3.5" /> Aprovar projeto</button>
+                  <button disabled={!mentoring.transitions.adjustments} onClick={() => act(async () => { await api.evaluateProject(post.id, { decision: "adjustments", justification: why }); setWhy(""); }, "Ajustes solicitados ao estudante.")} className="inline-flex items-center gap-1.5 rounded-md border border-review bg-review-bg px-3 py-1.5 text-xs font-semibold text-review hover:brightness-95 disabled:opacity-40"><PenLine className="h-3.5 w-3.5" /> Solicitar ajustes</button>
                   <button disabled={!mentoring.transitions.publish} onClick={() => window.confirm("Publicar este projeto no feed público da comunidade?") && act(() => api.publishProject(post.id), "Projeto publicado no feed.")} className="inline-flex items-center gap-1.5 rounded-md bg-brand-gradient px-3 py-1.5 text-xs font-semibold text-white hover:brightness-110 disabled:opacity-40"><Globe2 className="h-3.5 w-3.5" /> Publicar no feed</button>
                 </div>
                 {mentoring.published && <p className="mt-2 text-xs text-approved">Este projeto já está publicado no feed.</p>}

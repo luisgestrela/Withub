@@ -5,10 +5,9 @@ import { fmtDateTime } from "./stages";
 
 const STATUS = { scheduled: "Agendado", done: "Realizado", cancelled: "Cancelado" };
 
-export default function Meetings({ post, mentoring, act }) {
+export default function Meetings({ post, mentoring, meetings = [], act }) {
   const [at, setAt] = useState("");
   const [note, setNote] = useState("");
-  const meetings = api.listMeetings(post.id);
   return (
     <section className="rounded-xl border border-line-soft bg-white p-5 shadow-card" aria-labelledby="meet-title">
       <h2 id="meet-title" className="mb-3 flex items-center gap-2 text-sm font-bold text-ink"><Calendar className="h-4 w-4 text-muted" /> Agenda de mentorias</h2>
@@ -40,7 +39,7 @@ export default function Meetings({ post, mentoring, act }) {
             <label htmlFor="mt-note" className="block text-xs font-medium text-muted">Pauta (opcional)</label>
             <input id="mt-note" maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm" />
           </div>
-          <button onClick={() => act(() => { api.scheduleMeeting(post.id, { at, note }); setAt(""); setNote(""); }, "Encontro agendado.")} className="self-end rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white">Agendar</button>
+          <button onClick={() => act(async () => { await api.scheduleMeeting(post.id, { at, note }); setAt(""); setNote(""); }, "Encontro agendado.")} className="self-end rounded-md bg-brand-gradient px-4 py-2 text-sm font-semibold text-white">Agendar</button>
         </div>
       )}
     </section>

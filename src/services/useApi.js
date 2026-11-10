@@ -1,7 +1,8 @@
-import { useSyncExternalStore } from "react";
-import { subscribe, getVersion, me } from "./api";
+import { useEffect, useSyncExternalStore } from "react";
+import { subscribe, getVersion, me, initializeAuth, isAuthReady } from "./api";
 
 export function useApi() {
   useSyncExternalStore(subscribe, getVersion);
-  return { user: me() };
+  useEffect(() => { initializeAuth(); }, []);
+  return { user: me(), ready: isAuthReady() };
 }

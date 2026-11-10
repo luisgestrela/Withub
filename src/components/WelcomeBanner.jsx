@@ -1,12 +1,14 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useApi } from "../services/useApi";
-import { myStats } from "../services/api";
+import { loadStudentSummary } from "../services/database.js";
 
 export default function WelcomeBanner() {
   const { user } = useApi();
+  const [s, setStats] = useState({ projects: 0, likes: 0, comments: 0 });
+  useEffect(() => { if (user.role === "student") loadStudentSummary().then((data) => setStats(data.summary)).catch(() => {}); }, [user.id, user.role]);
   if (user.role !== "student") return null;
-  const s = myStats();
   return (
     <section className="mb-6 overflow-hidden rounded-2xl bg-brand-gradient p-5 text-white shadow-raised sm:p-7">
       <p className="text-xs font-bold uppercase tracking-widest text-white/80">Portal do Estudante</p>

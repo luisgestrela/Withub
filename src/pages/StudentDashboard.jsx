@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, ChevronRight, Users2 } from "lucide-react";
 import { AppShell } from "../components/AppShell";
@@ -6,14 +7,19 @@ import StatCard from "../components/StatCard";
 import StatusBadge from "../components/StatusBadge";
 import CategoryChip from "../components/CategoryChip";
 import { useApi } from "../services/useApi";
-import { myNotifications, myStats } from "../services/api";
 import { projectRows } from "../services/studentProjects";
+import { loadStudentSummary } from "../services/database.js";
 
 export default function StudentDashboard() {
   const { user } = useApi();
-  const s = myStats();
-  const rows = projectRows().slice(0, 5);
-  const recent = myNotifications().slice(0, 3);
+  const [s, setStats] = useState({ projects: 0, published: 0, likes: 0, comments: 0 });
+  const [rows, setRows] = useState([]);
+  const [recent, setRecent] = useState([]);
+  useEffect(() => {
+    Promise.all([loadStudentSummary(), projectRows()]).then(([summary, projects]) => {
+      setStats(summary.summary); setRecent(summary.recent.slice(0, 3)); setRows(projects.slice(0, 5));
+    }).catch(() => {});
+  }, [user.id]);
   const shortcuts = studentNav.filter((n) => n.to !== "/aluno");
   return (
     <AppShell nav={studentNav} user={user} subtitle="Estudante">

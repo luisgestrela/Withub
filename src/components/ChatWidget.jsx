@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { MessageSquare, X } from "lucide-react";
 import ChatPanel from "./ChatPanel";
@@ -8,9 +8,10 @@ import { unreadTotal } from "../services/api";
 export default function ChatWidget() {
   const { user } = useApi();
   const [open, setOpen] = useState(false);
+  const [unread, setUnread] = useState(0);
   const { pathname } = useLocation();
+  useEffect(() => { unreadTotal().then(setUnread).catch(() => setUnread(0)); }, [user.id]);
   if (user.role !== "mentor" || pathname.startsWith("/mentor/chat")) return null;
-  const unread = unreadTotal();
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-[calc(100vw_-_2rem)] flex flex-col items-end gap-3">
       {open && (

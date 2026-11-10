@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { mentorNavFor } from "../components/navs";
@@ -16,16 +16,15 @@ export default function MentorExplore() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [notice, setNotice] = useState(null);
-  const recs = recommendProjects();
+  const [recs, setRecs] = useState([]);
+  useEffect(() => { let active = true; recommendProjects().then((rows) => { if (active) setRecs(rows); }).catch((error) => setNotice({ type: "err", text: error.message })); return () => { active = false; }; }, [user.id]);
   const reasonsOf = new Map(recs.map((r) => [r.post.id, r.reasons]));
   // Só projetos ainda não publicados: a publicação depende do aval do mentor.
-  const posts = exploreProjects().map((r) => r.post);
+  const posts = recs.map((r) => r.post);
   const base = tab === "recommended" ? recs.map((r) => r.post) : posts;
   const needle = q.trim().toLowerCase();
   const list = base.filter((p) => (cat === "all" || p.category === cat) && (!needle || [p.title, p.description, p.authorName, ...p.tech, ...p.skills].join(" ").toLowerCase().includes(needle)));
-  const offer = (id) => {
-    try { offerMentorship(id); setNotice({ type: "ok", text: "Oferta enviada. O estudante precisa autorizar a mentoria." }); } catch (e) { setNotice({ type: "err", text: e.message }); }
-  };
+  const offer = (id) => offerMentorship(id).then(() => setNotice({ type: "ok", text: "Oferta enviada. O estudante precisa autorizar a mentoria." })).catch((e) => setNotice({ type: "err", text: e.message }));
   return (
     <AppShell nav={mentorNavFor(user.id)} user={user} subtitle="Mentor">
       <div className="mb-5">

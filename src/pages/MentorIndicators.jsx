@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { mentorNavFor } from "../components/navs";
@@ -16,7 +17,8 @@ const FORMULAS = [
 
 export default function MentorIndicators() {
   const { user } = useApi();
-  const i = mentorIndicators();
+  const [i, setIndicators] = useState({ tracked: 0, activeMentorships: 0, evaluations: 0, published: 0, approvals: 0, adjustmentsRequested: 0, pendingRequests: 0, avgResponseMs: null });
+  useEffect(() => { mentorIndicators().then(setIndicators).catch(() => {}); }, [user.id]);
   return (
     <AppShell nav={mentorNavFor(user.id)} user={user} subtitle="Mentor">
       <div className="mb-5">

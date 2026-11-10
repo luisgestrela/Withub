@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UploadCloud, Lock, Building2, Globe2, FileText, X, UserCheck } from "lucide-react";
 import SocialShell from "../components/SocialShell";
@@ -9,6 +9,7 @@ import { Chips } from "../components/FeedList";
 import { categories } from "../data/projects";
 import { useApi } from "../services/useApi";
 import * as api from "../services/api";
+import { loadMentorDirectory } from "../services/database.js";
 
 
 const visibilityOptions = [
@@ -21,7 +22,8 @@ export default function NewProject() {
   const [visibility, setVisibility] = useState("private");
   const [category, setCategory] = useState("engineering");
   const [mentorId, setMentorId] = useState("");
-  const mentors = api.listMentors();
+  const [mentors, setMentors] = useState([]);
+  useEffect(() => { loadMentorDirectory().then(setMentors).catch((error) => setNotice({ type: "err", text: error.message })); }, []);
   // Arquivos confidenciais são opcionais: a lista pode ficar vazia e o envio não é bloqueado.
   const [restrictedFiles, setRestrictedFiles] = useState([]);
   const restrictedInputRef = useRef(null);
@@ -44,12 +46,12 @@ export default function NewProject() {
     setImages((prev) => [...prev, ...loaded].slice(0, 12));
   };
 
-  const submit = (asDraft) => {
+  const submit = async (asDraft) => {
     setBusy(true);
     try {
-      const id = api.createProject({
+      const id = await api.createProject({
         ...form, skills: api.parseList(form.skills), knowledge: api.parseList(form.knowledge), tech: api.parseList(form.tech),
-        category, images: images.map((i) => i.dataUrl), visibility: asDraft ? "private" : visibility, mentorId: asDraft ? "" : mentorId,
+        category, images, visibility: asDraft ? "private" : visibility, mentorId: asDraft ? "" : mentorId,
       }, restrictedFiles); // arquivos confidenciais são opcionais: lista vazia é válida
       navigate(`/publicacao/${id}`, { state: { created: true } });
     } catch (e) {

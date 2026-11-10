@@ -1,4 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Bell, Search } from "lucide-react";
 import Logo from "./Logo";
 import PortalHeader from "./PortalHeader";
@@ -7,10 +8,15 @@ import { unreadNotificationCount, unreadTotal } from "../services/api";
 
 export function AppShell({ nav, user, subtitle, children }) {
   const location = useLocation();
+  const [badges, setBadges] = useState({ messages: 0, notifications: 0 });
   const student = user.role === "student";
   const mentor = user.role === "mentor";
   const portal = student || mentor;
-  const badges = mentor ? { messages: unreadTotal(), notifications: unreadNotificationCount() } : {};
+  useEffect(() => {
+    Promise.all([unreadNotificationCount(), mentor ? unreadTotal() : Promise.resolve(0)])
+      .then(([notifications, messages]) => setBadges({ notifications, messages }))
+      .catch(() => setBadges({ messages: 0, notifications: 0 }));
+  }, [mentor, user.id]);
   return (
     <div className={`min-h-screen ${portal ? "bg-[linear-gradient(180deg,#EDF3FF_0,#F6F7F9_280px)]" : "bg-cloud"}`}>
       {portal && <PortalHeader user={user} />}
