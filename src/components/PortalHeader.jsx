@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Bell, ChevronDown, FolderGit2, LogOut, Search, User } from "lucide-react";
+import { Bell, ChevronDown, FolderGit2, GraduationCap, LogOut, Presentation, Search, User } from "lucide-react";
 import Logo from "./Logo";
 import Avatar from "./Avatar";
 import { homeFor, logout, unreadNotificationCount } from "../services/api";
@@ -35,14 +35,14 @@ export default function PortalHeader({ user }) {
   return (
     <header className="sticky top-0 z-40 bg-[#003C5F] shadow-raised">
       <div className="h-1 bg-[#002E49]" />
-      <div className="mx-auto flex h-16 w-full items-center gap-3 px-4 sm:gap-5 sm:px-6 lg:px-10 xl:px-12">
+      <div className="relative mx-auto flex h-16 w-full items-center gap-3 px-4 sm:gap-5 sm:px-6 lg:px-10 xl:px-12">
         <Link to={homeFor(user.role)} className="flex shrink-0 items-center gap-3">
           <Logo mark={false} light />
-          <span className="hidden whitespace-nowrap text-sm font-semibold text-white lg:inline">{mentor ? "Portal do mentor" : "Portal do estudante"}</span>
+          {mentor ? <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white" title="Área do mentor" aria-label="Área do mentor"><Presentation className="h-4 w-4" /></span> : <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white" title="Área do estudante" aria-label="Área do estudante"><GraduationCap className="h-4 w-4" /></span>}
         </Link>
-        <form onSubmit={search} role="search" className="relative hidden min-w-0 max-w-sm flex-1 md:block">
+        <form onSubmit={search} role="search" className="absolute left-1/2 top-1/2 hidden w-[min(52vw,720px)] -translate-x-1/2 -translate-y-1/2 md:block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar projetos e tecnologias…" aria-label="Buscar no feed" className="w-full rounded-lg border border-line bg-cloud py-2 pl-9 pr-3 text-sm placeholder:text-muted focus:border-blue focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-50" />
+          <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar projetos e tecnologias…" aria-label="Buscar no feed" className={`w-full rounded-lg border border-line bg-cloud py-2 pl-9 pr-3 text-sm placeholder:text-muted focus:border-blue focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-50 ${mentor ? "text-center" : ""}`} />
         </form>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
